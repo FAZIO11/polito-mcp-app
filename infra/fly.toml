@@ -1,0 +1,46 @@
+# fly.toml app configuration file generated for polito-mcp on 2026-05-28T13:25:16+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'polito-mcp'
+primary_region = 'fra'
+kill_signal = 'SIGINT'
+kill_timeout = '10s'
+
+[build]
+  dockerfile = '../Dockerfile'
+
+[env]
+  DB_PATH = '/data/polito-mcp.sqlite'
+  LOG_LEVEL = 'info'
+  NODE_ENV = 'production'
+  PORT = '8080'
+
+[[mounts]]
+  source = 'polito_mcp_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 200
+    soft_limit = 100
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/healthz'
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256

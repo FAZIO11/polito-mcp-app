@@ -1,0 +1,31 @@
+node_modules
+dist
+build
+coverage
+*.log
+*.tsbuildinfo
+
+# mcp-use generated (tool-registry types, dev session store)
+.mcp-use/
+
+# Local data
+data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Fly
+.fly/
