@@ -1,11 +1,13 @@
 import React from 'react';
-import { Frame, TitleBlock, ThemeToggle, Empty, useLibretto } from '../_lib/kit';
+import { Frame, TitleBlock, ThemeToggle, Empty, ConnectFrame, useLibretto } from '../_lib/kit';
 import { LecturesSection, type Lecture } from '../_lib/sections';
 
-type Props = { lectures: Lecture[]; date?: string };
+type Props = { lectures: Lecture[]; date?: string; connectUrl?: string };
 
 export default function TodayWidget() {
   const { props, isPending, theme, locale, lang, t, toggleTheme } = useLibretto<Props>();
+  if (props.connectUrl)
+    return <ConnectFrame theme={theme} title={t('today')} url={props.connectUrl} t={t} onToggle={toggleTheme} />;
   const lectures = props.lectures ?? [];
   const heading = props.date
     ? new Intl.DateTimeFormat(lang === 'it' ? 'it-IT' : 'en-GB', {

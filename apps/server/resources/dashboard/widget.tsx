@@ -4,6 +4,7 @@ import {
   TitleBlock,
   ThemeToggle,
   Empty,
+  ConnectFrame,
   Rise,
   CountUp,
   useLibretto,
@@ -38,6 +39,7 @@ type Props = {
   siteId?: string;
   freeFrom?: string;
   freeTo?: string;
+  connectUrl?: string;
 };
 
 type View = 'home' | 'grades' | 'today' | 'deadlines' | 'rooms' | 'jobs';
@@ -171,6 +173,9 @@ export default function Dashboard() {
       </Frame>
     );
   }
+
+  if (props.connectUrl)
+    return <ConnectFrame theme={theme} title={t('dashboard')} url={props.connectUrl} t={t} onToggle={toggleTheme} />;
 
   const grades = props.grades ?? [];
   const lectures = props.lectures ?? [];

@@ -72,6 +72,27 @@ function handleError(err: unknown, toolName: string) {
   return makeError(err instanceof Error ? err.message : 'unknown error', 'internal');
 }
 
+/**
+ * Error handler for widget-backed tools. When the caller isn't connected, hand
+ * the /connect URL to the widget as a prop so it renders a "Connect your
+ * account" card with a real clickable button (the link is then always visible,
+ * regardless of how the model paraphrases its text reply). All other errors
+ * fall through to the standard text handler.
+ */
+function widgetAuthError(err: unknown, toolName: string) {
+  if (err instanceof ToolAuthError && err.code === 'not_authenticated' && err.sessionId) {
+    const connectUrl = `${loadConfig().PUBLIC_ORIGIN}/connect?s=${err.sessionId}`;
+    return widget({
+      props: { connectUrl },
+      output: text(
+        `The student hasn't connected their PoliTO account yet. ` +
+          `Tell them to open this sign-in link (show it verbatim): ${connectUrl}`,
+      ),
+    });
+  }
+  return handleError(err, toolName);
+}
+
 /** Weighted exam average (numeric grades only; lode counts as 30), or null. */
 function weightedGradeAverage(
   grades: { grade: string; credits: number }[],
@@ -202,7 +223,7 @@ export function registerTools(server: McpServerInstance): void {
           ),
         });
       } catch (err) {
-        return handleError(err, 'open_dashboard');
+        return widgetAuthError(err, 'open_dashboard');
       }
     },
   );
@@ -231,7 +252,7 @@ export function registerTools(server: McpServerInstance): void {
           ),
         });
       } catch (err) {
-        return handleError(err, 'get_grades');
+        return widgetAuthError(err, 'get_grades');
       }
     },
   );
@@ -339,7 +360,7 @@ export function registerTools(server: McpServerInstance): void {
               '.';
         return widget({ props: { deadlines }, output: text(summary) });
       } catch (err) {
-        return handleError(err, 'list_deadlines');
+        return widgetAuthError(err, 'list_deadlines');
       }
     },
   );
@@ -371,7 +392,7 @@ export function registerTools(server: McpServerInstance): void {
               '.';
         return widget({ props: { lectures, date: today }, output: text(summary) });
       } catch (err) {
-        return handleError(err, 'list_today_lectures');
+        return widgetAuthError(err, 'list_today_lectures');
       }
     },
   );
@@ -863,7 +884,7 @@ export function registerTools(server: McpServerInstance): void {
               '.';
         return widget({ props: { offers }, output: text(summary) });
       } catch (err) {
-        return handleError(err, 'list_job_offers');
+        return widgetAuthError(err, 'list_job_offers');
       }
     },
   );
@@ -1001,7 +1022,7 @@ export function registerTools(server: McpServerInstance): void {
           output: text(summary),
         });
       } catch (err) {
-        return handleError(err, 'find_free_classrooms');
+        return widgetAuthError(err, 'find_free_classrooms');
       }
     },
   );

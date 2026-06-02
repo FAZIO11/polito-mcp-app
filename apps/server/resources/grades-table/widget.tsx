@@ -1,11 +1,13 @@
 import React from 'react';
-import { Frame, TitleBlock, ThemeToggle, CountUp, Empty, useLibretto } from '../_lib/kit';
+import { Frame, TitleBlock, ThemeToggle, CountUp, Empty, ConnectFrame, useLibretto } from '../_lib/kit';
 import { GradesSection, gradeStats, type Grade } from '../_lib/sections';
 
-type Props = { grades: Grade[] };
+type Props = { grades: Grade[]; connectUrl?: string };
 
 export default function GradesWidget() {
   const { props, isPending, theme, locale, t, toggleTheme } = useLibretto<Props>();
+  if (props.connectUrl)
+    return <ConnectFrame theme={theme} title={t('grades')} url={props.connectUrl} t={t} onToggle={toggleTheme} />;
   const grades = props.grades ?? [];
   const { average, acquiredCredits } = gradeStats(grades);
 

@@ -10,7 +10,7 @@
 //  Imported by every `<name>/widget.tsx` and the dashboard via `../_lib/kit`.
 // ─────────────────────────────────────────────────────────────────────────
 import React from 'react';
-import { useWidget } from 'mcp-use/react';
+import { useWidget, McpUseProvider } from 'mcp-use/react';
 import type { Theme } from 'mcp-use/react';
 
 // ---- locale + i18n ---------------------------------------------------------
@@ -63,6 +63,13 @@ const STRINGS = {
   qWhatToday: { en: "What's on today?", it: 'Cosa ho oggi?' },
   qNextDeadline: { en: 'My next deadline', it: 'Prossima scadenza' },
   qFreeRoom: { en: 'Free room near me', it: 'Aula libera vicino a me' },
+  // connect / auth gate
+  connectTitle: { en: 'Connect your PoliTO account', it: 'Collega il tuo account PoliTO' },
+  connectBody: {
+    en: 'Sign in with your PoliTO credentials to see your data here. Then ask again.',
+    it: 'Accedi con le tue credenziali PoliTO per vedere i tuoi dati qui. Poi richiedi di nuovo.',
+  },
+  connectBtn: { en: 'Sign in to PoliTO', it: 'Accedi a PoliTO' },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type StringKey = keyof typeof STRINGS;
@@ -143,6 +150,8 @@ const FONTS =
 
 const LIB_CSS = `
 ${FONTS}
+html,body{margin:0;padding:0;background:transparent;}
+#widget-root{margin:0;}
 .lib{
   --font-display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif;
   --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -325,11 +334,13 @@ export function Frame({
   style?: React.CSSProperties;
 }) {
   return (
-    <div className="lib lib-ticks lib-pad" style={{ ...(tokens(theme) as React.CSSProperties), ...style }}>
-      <GlobalStyle />
-      <Ticks />
-      {children}
-    </div>
+    <McpUseProvider autoSize>
+      <div className="lib lib-ticks lib-pad" style={{ ...(tokens(theme) as React.CSSProperties), ...style }}>
+        <GlobalStyle />
+        <Ticks />
+        {children}
+      </div>
+    </McpUseProvider>
   );
 }
 
@@ -351,6 +362,80 @@ export function Badge({
     <span className="lib-badge" style={map[tone]}>
       {children}
     </span>
+  );
+}
+
+/**
+ * Auth gate shown inside a widget when the caller hasn't linked a PoliTO
+ * account. Renders a real clickable button to the /connect login page so the
+ * link is always visible regardless of how the model phrases its text reply.
+ */
+export function ConnectCard({ url, t }: { url: string; t: T }) {
+  return (
+    <div
+      style={{
+        border: '1px solid var(--line-2)',
+        borderRadius: 12,
+        padding: '22px 18px',
+        textAlign: 'center',
+        background: 'var(--surface)',
+      }}
+    >
+      <div style={{ fontSize: 26, lineHeight: 1 }}>🔑</div>
+      <div
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontWeight: 700,
+          fontSize: 16,
+          marginTop: 10,
+        }}
+      >
+        {t('connectTitle')}
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', margin: '6px auto 16px', maxWidth: 320 }}>
+        {t('connectBody')}
+      </div>
+      <a
+        className="lib-btn"
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          background: 'var(--accent)',
+          color: 'var(--accent-ink)',
+          borderColor: 'var(--accent)',
+          textDecoration: 'none',
+          padding: '9px 16px',
+          fontSize: 13,
+        }}
+      >
+        {t('connectBtn')} ↗
+      </a>
+    </div>
+  );
+}
+
+/** Full widget frame showing the connect/auth gate — used by every widget when
+ *  `props.connectUrl` is present (caller not yet linked). */
+export function ConnectFrame({
+  theme,
+  title,
+  url,
+  t,
+  onToggle,
+}: {
+  theme: Theme;
+  title: string;
+  url: string;
+  t: T;
+  onToggle: () => void;
+}) {
+  return (
+    <Frame theme={theme}>
+      <TitleBlock eyebrow="POLITO · MCP" title={title} right={<ThemeToggle theme={theme} onToggle={onToggle} />} />
+      <hr className="lib-rule" />
+      <ConnectCard url={url} t={t} />
+    </Frame>
   );
 }
 
