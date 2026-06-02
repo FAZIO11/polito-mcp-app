@@ -40,9 +40,9 @@ for us, the same MCP tools will work behind real SSO without changes.
 ## Layout
 
 ```
-polito-mcp/
-├── apps/server/      # The Hono + MCP server
-└── infra/            # Fly.io config
+polito-mcp-app/
+├── apps/server/      # The Hono + MCP server (mcp-use) + React widgets
+└── apps/web/         # Astro marketing + docs site
 ```
 
 ## Quick start (local development)
@@ -83,8 +83,10 @@ hardened login page, and an access token is stored locally by the client.
 
 ## Deployment
 
-See [`infra/README.md`](infra/README.md) for the Fly.io deployment steps,
-custom domain + HSTS preload, and key-rotation guidance.
+Deploys to [mcp-use cloud (Manufact)](https://cloud.mcp-use.com) from this
+GitHub repo — `npx mcp-use login` then `npx mcp-use deploy`. See **Deployment**
+in `CLAUDE.md` for the build/start commands, required env vars, and the
+state-persistence note.
 
 ## Alpha testing & PoliTO outreach
 

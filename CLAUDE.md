@@ -148,7 +148,7 @@ polito-mcp/
 ├── infra/fly.toml              # Fly.io deploy config
 ├── Dockerfile                  # Fly.io runtime image
 ├── Dockerfile.manufact         # mcp-use / Manufact cloud image (clones from GitHub main)
-└── .github/workflows/          # ci.yml (vitest+tsc), deploy.yml (fly deploy)
+└── .github/workflows/          # ci.yml (vitest+tsc)  — Fly deploy.yml removed
 ```
 
 ### Request flow (authenticated tool call)
@@ -278,13 +278,14 @@ the stored token revoked); PoliTO errors → `polito_error`.
 
 ## Deployment
 
-### Current: Fly.io
-```bash
-fly deploy --remote-only --config infra/fly.toml --dockerfile Dockerfile -a polito-mcp
-fly secrets set KEY=value -a polito-mcp          # rolling restart
-fly logs -a polito-mcp --no-tail
-```
-SQLite lives on a persistent volume mounted at `/data`.
+Target is **mcp-use cloud (Manufact)** — Git-backed deploy from this repo (see
+below). The old Fly.io setup (`infra/fly.toml`, `Dockerfile`, the `deploy.yml`
+workflow) was removed when the project moved to `polito-mcp-app`.
+
+> **⚠️ Persistence:** Fly gave a persistent volume at `/data`; Manufact's deploy
+> CLI exposes **no volume option**, so the SQLite DB (users/tokens/OAuth/sessions)
+> survives within a deployment but **resets on every redeploy**. Fine for a test
+> deploy; for real users, externalize state (e.g. Turso/libSQL for the DB) first.
 
 ### Widget production build
 Dev serves widgets via vite (in `getHandler()`). **Production needs prebuilt
