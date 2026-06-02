@@ -1,9 +1,9 @@
-# polito-mcp — CLAUDE.md
+# polito-mcp-app — CLAUDE.md
 
-> This repo is a fork of the original `polito-mcp` server. It is being migrated
-> from the official `@modelcontextprotocol/sdk` to the **mcp-use** framework
-> (https://docs.mcp-use.com) to gain widget/UI support inside Claude and ChatGPT.
-> This file documents the **current (post-migration) state**, not the upstream.
+> Unofficial remote MCP server for the Politecnico di Torino student API, built
+> on the **mcp-use** framework (https://docs.mcp-use.com) with interactive React
+> widgets. Started as a migration of the upstream `polito-mcp` (official
+> `@modelcontextprotocol/sdk`) and is now its own standalone project.
 
 ## Git commit style
 
@@ -14,141 +14,126 @@ in commit messages.
 
 ## What this is
 
-Unofficial MCP server that wraps the Politecnico di Torino student API
-(`https://app.didattica.polito.it/api`) so MCP-aware AI clients (Claude Desktop,
-Claude.ai, ChatGPT, Cursor, Windsurf) can read a student's profile, grades,
-lectures, deadlines, messages, exams, bookings, campus rooms, jobs, and more via
-natural language — and (Phase 2) render that data as interactive widgets.
+MCP server that wraps the PoliTO student API (`https://app.didattica.polito.it/api`)
+so MCP-aware AI clients (Claude Desktop, Claude.ai, ChatGPT, Cursor, Windsurf) can
+read a student's profile, grades, lectures, deadlines, messages, exams, bookings,
+campus rooms, jobs, and more via natural language — and render that data as
+interactive **Libretto** widgets, including a navigable dashboard.
 
 **Owner:** Fazil Abdul Sathar
-**Repo:** https://github.com/FAZIO11/polito-mcp-app
-**Working branch:** `migrate/mcp-use`
-**Status:** Phase 1 (mcp-use transport + 45 tools) complete & verified with real
-PoliTO credentials. Phase 2 (5 React widgets) built & verified in dev + a clean
-production build; the actual in-client render is verified by the owner in the
-inspector. Cloud deploy (mcp-use/Manufact) still pending — see caveats below.
+**Repo:** https://github.com/FAZIO11/polito-mcp-app  (private, branch `main`)
+**Live:** https://bold-cloud-1ucpl.run.mcp-use.com/mcp  (mcp-use cloud / Manufact, org Fazio, EU)
+**Status:** Migration + 5 data widgets + dashboard + cloud deploy all DONE and
+verified live. **46 MCP tools, 6 widgets.** Storage is currently ephemeral on the
+cloud (see Deployment). Next focus: iterating on the design language.
+
+> ⚠️ The live deployment lags `main` by one commit when you arrive: the connect-
+> card + auto-size fix (`69bc83a`) is pushed but a **redeploy** is needed to make
+> it live (the deployed build is `8467178`). Redeploy from the Manufact dashboard.
 
 ---
 
-## Migration overview (mcp-use)
+## Architecture (what changed vs. upstream, what didn't)
 
-The migration is two phases. **Architecture that does NOT change:** `auth/`,
-`db/`, `polito/client.ts`, `polito/types.ts`, the `http/` routes, and the
-`withPoliTo()` / `clientForUser()` / `ToolAuthError` logic in
-`mcp/auth-context.ts`. Only the MCP transport, tool registration syntax, and app
-composition changed.
+**Unchanged from upstream:** `auth/` (OAuth 2.1 AS), `db/` (SQLite), `crypto/`,
+`polito/client.ts` + `polito/types.ts`, the `http/` routes, and the
+`withPoliTo()` / `clientForUser()` / `ToolAuthError` logic in `mcp/auth-context.ts`.
 
-### Phase 1 — DONE (transport + tools)
-- `mcp/server.ts` — builds `new MCPServer(...)` and a `/mcp` Hono middleware that
-  resolves auth and stashes it on the request context.
-- `mcp/tools.ts` — all **45 tools** registered with `server.tool({...}, cb)` and
-  the mcp-use response helpers.
-- `mcp/auth-context.ts` — `getPolitoAuthExtra(ctx)` reads auth off the context;
-  everything else unchanged.
-- `http/context.ts` — added the `politoAuth` context variable + `PolitoSessionAuth`.
-- `app.ts` / `index.ts` — compose all routes onto `server.app`; `createApp` is async.
-- `zod` upgraded **3 → 4** in `apps/server` (mcp-use peer-depends on zod 4).
+**Changed for mcp-use:** the MCP transport, tool registration syntax, app
+composition, and the widget layer. `zod` was upgraded **3 → 4** (mcp-use peer dep).
 
-### Phase 2 — DONE (widgets)
-- `app.ts` now calls `await server.getHandler()` (mounts MCP + vite widget dev
-  server in dev / prebuilt bundles in prod + inspector).
-- 5 React widgets under `apps/server/resources/<name>/widget.tsx`, each a default-
-  exported component using `useWidget()` (guarding `isPending`) and a shared
-  `resources/_lib/kit.tsx` (a `_lib/` folder has no `widget.tsx`, so widget
-  discovery ignores it). Widgets: `grades-table`, `today-lectures`,
-  `deadline-calendar`, `job-board`, `free-rooms-grid`.
-- Their tools (`get_grades`, `list_today_lectures`, `list_deadlines`,
-  `list_job_offers`, `find_free_classrooms`) carry a `widget` config and return
-  `widget({ props, output: text(summary) })`. **`props` is the widget data
-  (structuredContent); `output` is the concise text the LLM sees.** Note: if
-  `output` carries its own `structuredContent` it overrides `props`, so keep
-  `output` a `text()`. When the caller isn't authenticated the tools still fall
-  back to the `/connect` text via `handleError` (no widget).
-- Build deps (devDependencies): `react`, `react-dom`, `vite`,
-  `@vitejs/plugin-react`, `@tailwindcss/vite`, `tailwindcss`. Widgets may use
-  Tailwind v4 classes; the kit uses theme-aware inline styles + the host
-  `theme`/`locale` from `useWidget()`.
+### How mcp-use is wired in (important, non-obvious)
 
-To add another widget: create `resources/<name>/widget.tsx` (default export,
-`useWidget<Props>()`, check `isPending`), add `widget: { name: '<name>', … }` to
-the tool, and return `widget({ props, output })`. The folder name MUST equal the
-tool's `widget.name`.
-
----
-
-## How mcp-use is wired in (important, non-obvious)
-
-mcp-use@1.28.0; `@mcp-use/inspector`; `@mcp-use/cli` (cloud deploy).
+mcp-use@1.28.0; `@mcp-use/inspector`@6; `@mcp-use/cli`@3.2 (build + cloud).
 
 - **`new MCPServer(config)` returns a Hono proxy.** `server.use/get/route(...)`
-  proxy to the underlying `server.app` (a Hono instance). The constructor only
-  installs a request logger + CORS; the `/mcp`, `/inspector`, and widget routes
-  are mounted later by `server.getHandler()` / `server.listen()`. **Register
-  custom routes/middleware BEFORE that mount** for correct precedence.
+  proxy to `server.app` (a Hono instance). The constructor only installs a request
+  logger + CORS; `/mcp`, `/inspector`, and widget routes mount later in
+  `await server.getHandler()`. **Register custom routes/middleware BEFORE
+  `getHandler()`** for correct precedence (see `app.ts`). `index.ts` serves
+  `server.app.fetch` via `@hono/node-server`.
 
 - **Auth into tools (the key seam).** mcp-use has its own OAuth (`config.oauth`)
-  — we do **NOT** use it; the project keeps its own OAuth AS. Instead, the tool
-  callback's 2nd arg `ctx` is `Object.create(<live /mcp Hono request context>)`,
-  so `ctx.get('politoAuth')` returns whatever the `/mcp` middleware did
-  `c.set('politoAuth', ...)`. The middleware resolves the user (JWT → MCP session
-  → 30-day IP mapping), creates the pending session row, and sets:
-  ```ts
-  { userId, username, clientId, sessionId } // PolitoSessionAuth
-  ```
-  Tools read it via `getPolitoAuthExtra(ctx)`, which throws
-  `ToolAuthError('not_authenticated', sessionId)` when `userId` is null.
+  — we do **NOT** use it; the project keeps its own OAuth AS. The tool callback's
+  2nd arg `ctx` is `Object.create(<live /mcp Hono request context>)`, so
+  `ctx.get('politoAuth')` returns whatever the `/mcp` middleware (`mcp/server.ts`)
+  set via `c.set('politoAuth', {userId, username, clientId, sessionId})`. The
+  middleware resolves the user (JWT → MCP session → 30-day IP map) and
+  `createPendingSession(sessionId)`. Tools read it via `getPolitoAuthExtra(ctx)`,
+  which throws `ToolAuthError('not_authenticated', sessionId)` when not linked.
 
-- **MCP session id** comes from the `mcp-session-id` request header (mcp-use owns
-  generation). The middleware calls `createPendingSession(sessionId)` so the
-  `/connect?s=<id>` login link tools hand out passes `isValidSession`.
+- **MCP session id** comes from the `mcp-session-id` header (mcp-use owns it).
 
-- **Response helpers** (from `mcp-use/server`): `text`, `object` (Record → flat
-  structuredContent), `array` (wraps as `{ data: [...] }`), `error` (sets
-  isError), and Phase-2 `widget`. `tools.ts` uses a small `json(value)` helper
-  that dispatches object vs array at runtime, plus `handleError()` for the auth /
-  PoliTO / network error mapping.
+- **Response helpers** (`mcp-use/server`): `text`, `object` (Record → flat
+  structuredContent), `array` (`{data:[...]}`), `error`, `widget`. `tools.ts` has
+  a `json(value)` helper (object vs array at runtime), `handleError()` (auth /
+  PoliTO / network mapping), and `widgetAuthError()` (see widgets below).
 
-- **Phase-1-only shortcut:** `app.ts` calls the internal `server.mountMcp()` (TS-
-  private, via cast) to mount only `/mcp` and skip the vite widget dev server we
-  don't need yet. **Swap for `await server.getHandler()` in Phase 2.**
+- **No `instructions` option** in mcp-use — the upstream advisory hint was dropped.
 
-- **No `instructions` option:** mcp-use has no server-level `instructions` field,
-  so the old advisory hint string was dropped.
+### Widgets — the "Libretto" design system
+
+The PoliTO *libretto universitario* reimagined as an engineer's drafting notebook:
+Bricolage Grotesque (display) + IBM Plex Mono (data) from Google Fonts, warm
+paper/graphite + one blueprint-blue accent, faint graph-paper grid, drafting
+corner ticks, staggered load + GPA count-up. Light/dark via a manual toggle that
+overrides the host theme. UI is locale-aware (English default, auto-Italian for
+`it-*`); **PoliTO data is left in its original language** (Italian).
+
+- `resources/_lib/kit.tsx` — design tokens, `GlobalStyle`, `Frame` (wraps content
+  in **`<McpUseProvider autoSize>`** so the host iframe grows to fit — no internal
+  scroll), `TitleBlock`, `ThemeToggle`, `Badge`, `CountUp`, `Rise`, `Empty`,
+  `ConnectCard` + `ConnectFrame` (auth gate), `useLibretto()` (theme + locale + i18n
+  `t()`), and the EN/IT string table.
+- `resources/_lib/sections.tsx` — shared section renderers (`GradesSection`,
+  `LecturesSection`, `DeadlinesSection`, `JobsSection`, `RoomsSection`) used by
+  both the standalone widgets AND the dashboard.
+- `resources/<name>/widget.tsx` — 6 default-exported components: `grades-table`,
+  `today-lectures`, `deadline-calendar`, `job-board`, `free-rooms-grid`, and
+  `dashboard` (home grid → drill-in + in-widget chat via `sendFollowUpMessage`).
+- `_lib/` has no `widget.tsx`, so mcp-use widget discovery ignores it.
+
+**Tool ↔ widget contract.** A widget tool sets `widget: { name, invoking, invoked }`
+(folder name MUST equal `widget.name`) and returns `widget({ props, output:
+text(summary) })`. **`props` is the widget data (structuredContent); `output` is
+the concise text the LLM sees.** If `output` carries its own `structuredContent`
+it OVERRIDES `props`, so keep `output` a `text()`. On auth failure, widget tools
+use `widgetAuthError(err, name)` which returns `widget({ props: { connectUrl } })`
+so the widget renders the **ConnectCard** (a real clickable sign-in button —
+the link is always visible regardless of the model's wording). The 6 widget tools:
+`get_grades`, `list_today_lectures`, `list_deadlines`, `list_job_offers`,
+`find_free_classrooms`, `open_dashboard`.
+
+To add a widget: create `resources/<name>/widget.tsx` (default export,
+`useLibretto<Props>()`, render inside `<Frame>`, early-return `<ConnectFrame>` when
+`props.connectUrl`), add `widget:{name}` to the tool, return `widget({props,output})`.
 
 ---
 
 ## Repo layout
 
 ```
-polito-mcp/
-├── apps/server/                # the only runtime app (npm workspace)
+polito-mcp-app/
+├── apps/server/                # the runtime app (npm workspace)
 │   ├── src/
-│   │   ├── index.ts            # entry: await createApp() → @hono/node-server, SIGINT/SIGTERM
-│   │   ├── app.ts              # composes routes on server.app; mounts /mcp (+ inspector)
-│   │   ├── config.ts           # zod-validated env (singleton, cached)
-│   │   ├── logger.ts           # pino + password-redaction allowlist
-│   │   ├── auth/               # OAuth 2.1 AS — UNCHANGED by migration
-│   │   │   ├── server.ts       #   /authorize /token /register /revoke + discovery
-│   │   │   ├── password.ts     #   PasswordStrategy → PoliTO /auth/login
-│   │   │   ├── login-username.ts, strategy.ts, jwt.ts, pkce.ts, errors.ts
-│   │   ├── db/                 # SQLite (better-sqlite3) — UNCHANGED
-│   │   │   ├── sqlite.ts, users.ts, oauth.ts, sessions.ts
+│   │   ├── index.ts            # entry: await createApp() → @hono/node-server
+│   │   ├── app.ts              # routes on server.app; await server.getHandler()
+│   │   ├── config.ts           # zod-validated env (PUBLIC_ORIGIN normalized: strips /mcp)
+│   │   ├── logger.ts           # pino + password redaction
+│   │   ├── auth/               # OAuth 2.1 AS — UNCHANGED  (server/password/jwt/pkce/…)
+│   │   ├── db/                 # SQLite (better-sqlite3) — UNCHANGED  (sqlite/users/oauth/sessions)
 │   │   ├── crypto/keys.ts      # AES-256-GCM per-user HKDF token encryption
-│   │   ├── http/               # Hono routes — UNCHANGED
-│   │   │   ├── login-page.ts, account.ts, connect.ts, rate-limit.ts, context.ts
-│   │   ├── mcp/                # ← migrated to mcp-use
+│   │   ├── http/               # Hono routes — UNCHANGED  (login-page/account/connect/rate-limit/context)
+│   │   ├── mcp/                # ← mcp-use
 │   │   │   ├── server.ts       #   MCPServer + /mcp auth middleware
-│   │   │   ├── tools.ts        #   all 45 server.tool() registrations
+│   │   │   ├── tools.ts        #   all 46 server.tool() registrations
 │   │   │   └── auth-context.ts #   getPolitoAuthExtra(ctx), withPoliTo, ToolAuthError
-│   │   ├── polito/             # PolitoClient + types — UNCHANGED
-│   │   │   ├── client.ts, types.ts
-│   │   └── observability/sentry.ts
-│   ├── resources/              # (Phase 2) React widgets: <name>/widget.tsx
-│   └── tests/                  # vitest: oauth-flow, pkce, crypto, rate-limit, redaction, ...
-├── infra/fly.toml              # Fly.io deploy config
-├── Dockerfile                  # Fly.io runtime image
-├── Dockerfile.manufact         # mcp-use / Manufact cloud image (clones from GitHub main)
-└── .github/workflows/          # ci.yml (vitest+tsc)  — Fly deploy.yml removed
+│   │   └── polito/             # PolitoClient + types — UNCHANGED
+│   ├── resources/              # React widgets (Libretto): _lib/{kit,sections}.tsx + <name>/widget.tsx
+│   └── tests/                  # vitest (28): oauth-flow, pkce, crypto, rate-limit, redaction, …
+├── apps/web/                   # Astro marketing + docs site
+├── Dockerfile.manufact         # legacy self-clone Dockerfile — NOT used by the current deploy
+└── .github/workflows/ci.yml    # vitest + tsc on push/PR to main
 ```
 
 ### Request flow (authenticated tool call)
@@ -157,26 +142,24 @@ MCP client → POST /mcp (Bearer JWT or mcp-session-id)
   → /mcp auth middleware: resolve user → c.set('politoAuth', {...})
   → mcp-use transport → tool callback (ctx = request context)
   → getPolitoAuthExtra(ctx) → withPoliTo(userId, fn)   # decrypts bearer
-  → PolitoClient.method() → https://app.didattica.polito.it/api/...
-  → json(data) / array(data) / text(...) back to the client
+  → PolitoClient.method() → PoliTO API → json()/array()/widget() back
 ```
 
 ### Onboarding flow (not yet connected)
 ```
-Tool call with no linked account
-  → ToolAuthError('not_authenticated', sessionId)
-  → tool returns text: open  PUBLIC_ORIGIN/connect?s=<mcp-session-id>
+Tool call, no linked account → ToolAuthError('not_authenticated', sessionId)
+  → widget tools: ConnectCard with PUBLIC_ORIGIN/connect?s=<id> ; other tools: text link
 User opens link → login page → POST /connect (PoliTO /auth/login)
-  → encrypt + store bearer → linkSessionToUser(sessionId) + IP mapping (30d)
-  → next tool call from same session/IP is auto-authenticated
+  → encrypt+store bearer → linkSessionToUser + 30-day IP map → next call auto-auth
 ```
 
 ### OAuth 2.1 AS flow (clients that do real OAuth)
 ```
-POST /register (RFC 7591) → GET /authorize (login page)
-  → POST /authorize (creds → PoliTO) → 302 with auth code
+POST /register (RFC 7591) → GET/POST /authorize (login page → PoliTO) → 302 code
   → POST /token (PKCE S256) → our JWT access token (30-day)
 ```
+Note: mcp-use cloud fronts `/mcp` with its own OAuth proxy (`/mcp/authorize?target=`);
+the session-based `/connect` flow is the primary onboarding path and is unaffected.
 
 ---
 
@@ -184,20 +167,19 @@ POST /register (RFC 7591) → GET /authorize (login page)
 
 | Variable | Required | Description |
 |---|---|---|
-| `ENC_MASTER_KEY` | ✅ | 64 hex chars (32 bytes). HKDF master for per-user token encryption. |
-| `JWT_SECRET` | ✅ | 64 hex chars (32 bytes). Signs our OAuth access tokens. |
-| `POLITO_BASE_URL` | ✅ | `https://app.didattica.polito.it/api` (prod) · `.../mock/api` (dev). |
-| `PUBLIC_ORIGIN` | ✅ | Public origin; used in OAuth discovery + the `/connect` link. |
-| `PORT` | optional | Default 8787 (dev). Fly/Manufact set 8080. Shell env overrides `--env-file`. |
-| `DB_PATH` | optional | Default `./data/polito-mcp.sqlite`. Prod mounts a volume at `/data`. |
-| `LOG_LEVEL` | optional | `trace/debug/info/warn/error/fatal`. Default `info`. |
+| `ENC_MASTER_KEY` | ✅ | 64 hex chars. HKDF master for per-user token encryption. |
+| `JWT_SECRET` | ✅ | 64 hex chars. Signs our OAuth access tokens. |
+| `POLITO_BASE_URL` | ✅ | `https://app.didattica.polito.it/api` (real) · `.../mock/api` (mock). |
+| `PUBLIC_ORIGIN` | ✅ | Public origin for `/connect` + OAuth discovery. Normalized in config: a trailing `/mcp` + slashes are stripped (mcp-use cloud injects it as the MCP endpoint URL). |
+| `PORT` | optional | Default 8787 (dev). Cloud sets/uses 3000. Shell env overrides `--env-file`. |
+| `DB_PATH` | optional | Default `./data/polito-mcp.sqlite`. Cloud uses `/tmp/polito-mcp.sqlite` (ephemeral). |
+| `LOG_LEVEL` | optional | `trace…fatal`. Default `info`. |
 | `SENTRY_DSN` | optional | Enables Sentry. Body redaction enforced regardless. |
-| `NODE_ENV` | optional | `production` enables HSTS + production widget mounting. |
+| `NODE_ENV` | optional | `production` enables HSTS + prebuilt widget serving. |
 
 Generate a secret: `node -e 'console.log(require("node:crypto").randomBytes(32).toString("hex"))'`
-
-A local dev `.env` lives at `apps/server/.env` (gitignored). Required keys:
-`ENC_MASTER_KEY`, `JWT_SECRET`, `POLITO_BASE_URL`, `PUBLIC_ORIGIN`, `PORT`.
+Local dev `.env` lives at `apps/server/.env` (gitignored). It currently points at
+the **real** PoliTO API on port **8788** (8787 is reserved on this machine).
 
 ---
 
@@ -206,61 +188,59 @@ A local dev `.env` lives at `apps/server/.env` (gitignored). Required keys:
 ```bash
 npm install                                  # workspace install (root)
 
-# Dev server (hot reload) — from apps/server/
-node --env-file=.env --import tsx/esm --watch src/index.ts
-# or: npm run dev  (from repo root or apps/server)
+# Dev server (hot reload) — from apps/server/  (NOTE: use a free port; 8787 is taken)
+PORT=8788 node --env-file=.env --import tsx/esm --watch src/index.ts
 
-npm run build      --workspace apps/server   # tsc → apps/server/dist
-npm run typecheck  --workspace apps/server   # tsc --noEmit   (clean)
-npm run test       --workspace apps/server   # vitest, 28 tests
+npm run typecheck   --workspace apps/server   # tsc --noEmit  (clean)
+npm run test        --workspace apps/server   # vitest, 28 tests
+npm run build       --workspace apps/server   # tsc → dist (server only, NO widgets)
+npm run build:widgets --workspace apps/server # mcp-use build → dist/resources/widgets + manifest
 
-# Inspect the live MCP server (45 tools):
-npx @mcp-use/inspector --url http://localhost:8787/mcp
-# or open the mounted UI at  http://localhost:8787/inspector
+# Inspect the live MCP server (46 tools) — local or cloud:
+npx @mcp-use/inspector --url http://localhost:8788/mcp
+# or the mounted UI at  http://localhost:8788/inspector
 
-# Quick MCP probe without auth (returns the /connect link):
-#   POST /mcp initialize → capture mcp-session-id header
-#   POST /mcp tools/list / tools/call (send the session id back)
-# Note: /mcp may answer as SSE (event: message\ndata: {...}) — parse both.
+# Typecheck the widgets (they're outside the server tsconfig):
+npx tsc --noEmit --jsx react-jsx --module esnext --moduleResolution bundler \
+  --target es2022 --lib es2023,dom,dom.iterable --strict --skipLibCheck --types react \
+  resources/_lib/*.tsx resources/*/widget.tsx
 
-# Real-PoliTO smoke test (never commit credentials):
-POLITO_TEST_USERNAME=sXXXXXX POLITO_TEST_PASSWORD='...' \
-  npx tsx apps/server/tests/real-polito.smoke.ts
+# /mcp may answer as SSE (event: message\ndata: {...}) — parse both (see oauth-flow.test.ts parseMcp).
 ```
 
-**Known gap:** `npm run lint` fails — pre-existing. ESLint 9 needs an
-`eslint.config.js` (flat config) and the repo has none. Not migration-related.
+**Known gap:** `npm run lint` fails — PRE-EXISTING. ESLint 9 needs an
+`eslint.config.js` (flat config); the repo has none. Not migration-related.
 
 ---
 
-## MCP tools (45)
+## MCP tools (46)
 
-All are `readOnlyHint: true` unless noted. Each returns JSON (and, in Phase 2,
-an optional widget). Names/descriptions are stable — do not rename.
+All `readOnlyHint: true` unless noted. Names/descriptions are stable — do not rename.
 
-- **Time:** `get_current_datetime`
-- **Profile / grades:** `get_profile`, `get_grades`, `get_provisional_grades`,
+- **App:** `open_dashboard` (widget), `get_current_datetime`
+- **Profile / grades:** `get_profile`, `get_grades` (widget), `get_provisional_grades`,
   `accept_provisional_grade` (write), `reject_provisional_grade` (write/destructive)
-- **Schedule:** `list_deadlines`, `list_today_lectures`, `list_lectures`, `get_next_lecture`
-- **Courses:** `list_courses`, `get_course`, `list_course_notices`,
-  `list_course_files`, `list_course_videolectures`,
-  `list_course_virtual_classrooms`, `list_course_assignments`, `get_course_statistics`
+- **Schedule:** `list_deadlines` (widget), `list_today_lectures` (widget),
+  `list_lectures`, `get_next_lecture`
+- **Courses:** `list_courses`, `get_course`, `list_course_notices`, `list_course_files`,
+  `list_course_videolectures`, `list_course_virtual_classrooms`,
+  `list_course_assignments`, `get_course_statistics`
 - **Inbox:** `list_messages`, `mark_message_read` (write), `list_notifications`,
   `get_unread_emails_count`
 - **Exams:** `list_exams`, `list_bookings`, `book_exam` (write),
   `cancel_exam_booking` (write/destructive)
-- **Campus / places:** `find_free_classrooms`, `list_sites`, `list_free_rooms`,
-  `search_places`, `get_place`
+- **Campus / places:** `find_free_classrooms` (widget), `list_sites`,
+  `list_free_rooms`, `search_places`, `get_place`
 - **People:** `search_people`, `get_person`
-- **Career / news:** `list_job_offers`, `get_job_offer`, `list_news`,
+- **Career / news:** `list_job_offers` (widget), `get_job_offer`, `list_news`,
   `get_news_item`, `list_announcements`
 - **Support:** `list_tickets`, `get_ticket`, `close_ticket` (write),
   `search_ticket_faqs`, `list_surveys`, `list_guides`
 - **Account:** `delete_my_account` (write/destructive — requires `confirm: true`)
 
-Tool error handling (`handleError`): network errors → `network_error`; missing/
-expired auth → `not_authenticated` / `re_auth_required` (an upstream 401 marks
-the stored token revoked); PoliTO errors → `polito_error`.
+`handleError`: network → `network_error`; auth → `not_authenticated` /
+`re_auth_required` (upstream 401 marks the stored token revoked); PoliTO →
+`polito_error`. Widget tools use `widgetAuthError` for the not_authenticated case.
 
 ---
 
@@ -269,91 +249,75 @@ the stored token revoked); PoliTO errors → `polito_error`.
 - **Spec:** https://github.com/polito/api-spec (TypeSpec → OpenAPI).
 - Base URL **must** include `/api` (without it the host 302s to SAML SSO).
 - **Auth:** `POST /auth/login` `loginType:"basic"` → `{ data: { token, username, clientId } }`.
-- Most endpoints return a `{ data: <payload> }` envelope; `/provisional-grades`
-  returns `{ data: [], states: [] }` at top level.
-- Upstream **401** on any tool call → stored bearer expired → mark revoked → user
-  must re-auth (`re_auth_required`).
+- Most endpoints return `{ data: <payload> }`; `/provisional-grades` returns
+  `{ data: [], states: [] }` at top level.
+- Upstream **401** → stored bearer expired → mark revoked → user re-auths.
 
 ---
 
-## Deployment
+## Deployment (mcp-use cloud / Manufact)
 
-Target is **mcp-use cloud (Manufact)** — Git-backed deploy from this repo (see
-below). The old Fly.io setup (`infra/fly.toml`, `Dockerfile`, the `deploy.yml`
-workflow) was removed when the project moved to `polito-mcp-app`.
+**Live:** https://bold-cloud-1ucpl.run.mcp-use.com (MCP at `/mcp`), org Fazio, EU.
+Manufact builds & runs from GitHub `main` (buildpack, not the legacy
+`Dockerfile.manufact`). Fly.io was removed.
 
-> **⚠️ Persistence:** Fly gave a persistent volume at `/data`; Manufact's deploy
-> CLI exposes **no volume option**, so the SQLite DB (users/tokens/OAuth/sessions)
-> survives within a deployment but **resets on every redeploy**. Fine for a test
-> deploy; for real users, externalize state (e.g. Turso/libSQL for the DB) first.
+**Deploy via the Manufact dashboard UI** (`manufact.com` → Servers → Import from
+GitHub → polito-mcp-app → Deploy/Redeploy). **The CLI `mcp-use deploy` returns 403
+"insufficient permissions"** on the FREE plan even as org owner — use the UI.
+(`mcp-use login --api-key <key>` does work for auth; the device flow 401s unless
+you're already signed in at manufact.com.)
 
-### Widget production build
-Dev serves widgets via vite (in `getHandler()`). **Production needs prebuilt
-bundles**: `npm run build:widgets --workspace apps/server` (= `mcp-use build
---no-typecheck`) emits `dist/resources/widgets/<name>/` + `dist/mcp-use.json`
-(manifest, with a `buildId`). At runtime with `NODE_ENV=production`,
-`mountWidgetsProduction` loads the manifest and serves the prebuilt widgets. Plain
-`npm run build` (tsc) compiles the server only — **it does not build widgets**.
+Configure Deployment form:
+- **Preset:** mcp-use SDK
+- **Build command:** `npm ci --include=dev && npm run build:widgets --workspace apps/server`
+- **Start command:** `cd apps/server && node dist/index.js`
+- **Port:** `3000` · **Region:** EU
+- **Env:** `NODE_ENV=production`, `POLITO_BASE_URL=https://app.didattica.polito.it/api`,
+  `DB_PATH=/tmp/polito-mcp.sqlite`, `PORT=3000`, `ENC_MASTER_KEY=<64hex>`,
+  `JWT_SECRET=<64hex>`. (`PUBLIC_ORIGIN` is injected by Manufact and normalized in
+  config, so it's optional.)
 
-Caveats for `mcp-use build` (verified locally):
-- `--no-typecheck` is required: the build's own typecheck looks for `tsc` at
-  `apps/server/node_modules/typescript/bin/tsc`, but TypeScript is hoisted to the
-  workspace root. We typecheck separately (`npm run typecheck`).
-- It **imports `src/index.ts` to introspect tools, which calls `serve()` and
-  `loadConfig()`** — so the env secrets must be present during the build, and it
-  briefly binds a port. (A cleaner fix for the deploy pass: guard `serve()` in
-  `index.ts` behind a main-module / env check so the entry can be imported
-  without starting a listener.)
+**Quirks (all handled / known):**
+- Manufact applies env **only at runtime, not at build** → `mcp-use build`'s
+  tool-registry type-gen warns "ENC_MASTER_KEY must be 64 hex" — **non-blocking**,
+  widgets build fine.
+- Manufact injects `PUBLIC_ORIGIN` as `<url>/mcp`; `config.ts` strips the trailing
+  `/mcp` so `/connect` + OAuth links resolve. (Don't undo that normalization.)
+- `@mcp-use/cli` is a declared devDependency (the build's `mcp-use` binary).
 
-### Target: mcp-use cloud (Manufact)
-mcp-use cloud is **Git-backed** — it builds & runs the server from the GitHub
-repo (see `Dockerfile.manufact`, which clones `main`, builds, runs on `:8080`,
-and creates `/data`). The whole point of the mcp-use migration is widget support,
-so cloud deploy is most valuable now that Phase 2 is in.
+> **⚠️ Persistence (the open item):** the SQLite DB lives in `/tmp` and **resets on
+> every redeploy** (Manufact exposes no persistent volume). Fine for testing; for
+> real users, move state to **Turso/libSQL** (serverless SQLite, minimal change
+> since we're already on SQLite) before relying on connected accounts persisting.
 
-**⚠️ `Dockerfile.manufact` needs two fixes before a widget-capable deploy:**
-1. Its build step runs `npm run build` (tsc only) → **change to also build
-   widgets** (`npm run build:widgets`), and ensure env secrets are available at
-   build time (see the `mcp-use build` caveat above).
-2. It runs `node apps/server/dist/index.js` from `WORKDIR /app`, so `cwd=/app`,
-   but `mountWidgetsProduction` resolves widgets at `cwd/dist/resources/widgets`
-   (i.e. `/app/dist/...`) while the build output is at
-   `/app/apps/server/dist/...`. **Run with `cwd=apps/server`** (set `WORKDIR
-   /app/apps/server` for the CMD) so production finds the manifest/widgets.
-
-```bash
-npx mcp-use login                 # auth to cloud.mcp-use.com (Manufact)
-npx mcp-use whoami
-npx mcp-use deploy                # deploy this MCP server from GitHub
-npx mcp-use env list   <server>   # manage env vars (set the secrets below)
-npx mcp-use cloud list            # list deployments
-npx mcp-use cloud logs            # tail logs
-npx mcp-use cloud restart|stop|start|delete
-```
-
-**Before deploying, confirm/set on the cloud server:** `ENC_MASTER_KEY`,
-`JWT_SECRET`, `POLITO_BASE_URL=https://app.didattica.polito.it/api`,
-`PUBLIC_ORIGIN=<the cloud URL>`, `NODE_ENV=production`, `DB_PATH=/data/polito-mcp.sqlite`.
-
-**⚠️ Open question to verify first:** this server is **stateful** (SQLite user/
-token/session DB) and runs a **custom OAuth AS**. It needs a **persistent disk**
-at `/data` and **single-instance** execution (no horizontal scaling without
-Redis). Confirm Manufact provides a persistent volume; otherwise the user DB
-resets on every deploy and connected accounts are lost.
+Manage: `npx mcp-use deployments list|logs|...`, `npx mcp-use servers ...`,
+`npx mcp-use org ...`. (`cloud` is NOT a subcommand in CLI 3.2.)
 
 ---
 
 ## Conventions for future work
 
-- Keep `auth/`, `db/`, `polito/`, and `http/` route logic untouched unless the
-  task is specifically about them.
-- New tools: copy an existing `server.tool({...}, async (params, ctx) => {...})`
-  block in `tools.ts`; resolve auth with `getPolitoAuthExtra(ctx)` and call PoliTO
-  through `withPoliTo(userId, (c) => c.method())`; return via `json(...)` and wrap
-  the body in `try/catch` → `handleError(err, 'tool_name')`.
-- Widgets (Phase 2): folder name under `resources/` must exactly match the tool's
-  `widget.name`; components use `useWidget()` from `mcp-use/react` (not props) and
-  must check `isPending` before reading props.
-- Tests use an in-process fake PoliTO (`tests/fake-polito.ts`); `/mcp` responses
-  may be SSE — parse with the `parseMcp` helper in `oauth-flow.test.ts`.
-```
+- Keep `auth/`, `db/`, `polito/`, `http/` route logic untouched unless the task is
+  specifically about them.
+- New tools: copy a `server.tool({...}, async (params, ctx) => {...})` block in
+  `tools.ts`; resolve auth with `getPolitoAuthExtra(ctx)`, call PoliTO via
+  `withPoliTo(userId, (c) => c.method())`, return `json(...)`, wrap in
+  `try/catch → handleError(err, 'tool_name')` (or `widgetAuthError` for widget tools).
+- Widgets: folder name === tool's `widget.name`; use `useLibretto<Props>()`, render
+  inside `<Frame>`, early-return `<ConnectFrame>` on `props.connectUrl`, reuse the
+  shared sections in `_lib/sections.tsx`, keep UI strings in the `_lib/kit.tsx` i18n
+  table (EN/IT) and **leave PoliTO data untranslated**.
+- Design changes are token-driven in `_lib/kit.tsx` (`tokens()` palette, `LIB_CSS`).
+  If the in-client widget CSP ever blocks Google Fonts, self-host/inline the fonts.
+- Tests use an in-process fake PoliTO (`tests/fake-polito.ts`); `/mcp` may be SSE —
+  parse with the `parseMcp` helper in `oauth-flow.test.ts`. Run `npm run typecheck`
+  + `npm run test` before committing; commit with the style rule at the top.
+
+## Open threads / next steps
+
+1. **Redeploy** to make `69bc83a` (connect card + auto-size) live.
+2. Iterate on the **Libretto** design language (the current focus).
+3. **Turso/libSQL** migration for persistent storage before real users.
+4. Optional: guard `serve()` in `index.ts` behind a main-module check so
+   `mcp-use build` can import the entry without starting a listener.
+5. `eslint.config.js` (flat config) to un-break `npm run lint`.
