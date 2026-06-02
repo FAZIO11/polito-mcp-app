@@ -2,7 +2,14 @@ import { z } from 'zod';
 
 const Schema = z.object({
   POLITO_BASE_URL: z.string().url().default('https://app.didattica.polito.it/api'),
-  PUBLIC_ORIGIN: z.string().url().default('http://localhost:8787'),
+  // Bare public origin (scheme + host), used to build /connect, /authorize, etc.
+  // Some hosts (e.g. mcp-use cloud) inject this as the MCP endpoint URL with a
+  // trailing `/mcp` — normalize it away so generated links resolve correctly.
+  PUBLIC_ORIGIN: z
+    .string()
+    .url()
+    .default('http://localhost:8787')
+    .transform((s) => s.replace(/\/+$/, '').replace(/\/mcp$/, '')),
   ENC_MASTER_KEY: z
     .string()
     .regex(/^[0-9a-f]{64}$/i, 'ENC_MASTER_KEY must be 64 hex chars (32 bytes)'),
