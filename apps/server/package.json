@@ -28,6 +28,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@mcp-use/cli": "^3.2.0",
     "@tailwindcss/vite": "^4.3.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.5",
