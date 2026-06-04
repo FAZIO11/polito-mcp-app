@@ -55,6 +55,12 @@ function handleError(err: unknown, toolName: string) {
       return makeError('Not authenticated. Please connect your PoliTO account.', 'not_authenticated');
     }
     if (err.code === 're_auth_required' || err.code === 'no_active_token') {
+      if (err.sessionId) {
+        const loginUrl = `${loadConfig().PUBLIC_ORIGIN}/connect?s=${err.sessionId}`;
+        return text(
+          `Your PoliTO session has expired. Sign in again to reconnect:\n\n${loginUrl}`,
+        );
+      }
       return makeError(
         'Your PoliTO session has expired. Please re-authorize the polito-mcp connection in your MCP client.',
         're_auth_required',
@@ -80,13 +86,19 @@ function handleError(err: unknown, toolName: string) {
  * fall through to the standard text handler.
  */
 function widgetAuthError(err: unknown, toolName: string) {
-  if (err instanceof ToolAuthError && err.code === 'not_authenticated' && err.sessionId) {
+  if (
+    err instanceof ToolAuthError &&
+    err.sessionId &&
+    (err.code === 'not_authenticated' || err.code === 're_auth_required' || err.code === 'no_active_token')
+  ) {
     const connectUrl = `${loadConfig().PUBLIC_ORIGIN}/connect?s=${err.sessionId}`;
+    const isReauth = err.code !== 'not_authenticated';
     return widget({
       props: { connectUrl },
       output: text(
-        `The student hasn't connected their PoliTO account yet. ` +
-          `Tell them to open this sign-in link (show it verbatim): ${connectUrl}`,
+        isReauth
+          ? `The student's PoliTO session has expired. Tell them to sign in again (show it verbatim): ${connectUrl}`
+          : `The student hasn't connected their PoliTO account yet. Tell them to open this sign-in link (show it verbatim): ${connectUrl}`,
       ),
     });
   }
@@ -1310,12 +1322,12 @@ export function registerTools(server: McpServerInstance): void {
         const { userId } = getPolitoAuthExtra(ctx);
         // Best-effort upstream logout before deleting the local token.
         try {
-          const client = clientForUser(userId);
+          const client = await clientForUser(userId);
           await client.logout();
         } catch (err) {
           logger.warn({ err }, 'Upstream logout failed during account deletion');
         }
-        deleteUserCompletely(userId);
+        await deleteUserCompletely(userId);
         return json({ deleted: true });
       } catch (err) {
         return handleError(err, 'delete_my_account');

@@ -33,7 +33,7 @@ export function createAccountApp(): Hono<AppEnv> {
   app.delete('/me/data', async (c) => {
     const claims = c.get('accessClaims');
     const cfg = loadConfig();
-    const token = getDecryptedToken(claims.sub);
+    const token = await getDecryptedToken(claims.sub);
     if (token) {
       try {
         await new PolitoClient(cfg.POLITO_BASE_URL, token).logout();
@@ -41,7 +41,7 @@ export function createAccountApp(): Hono<AppEnv> {
         logger.warn({ err }, 'Upstream PoliTO logout failed during account deletion');
       }
     }
-    deleteUserCompletely(claims.sub);
+    await deleteUserCompletely(claims.sub);
     return c.json({ deleted: true });
   });
 

@@ -21,6 +21,11 @@ const Schema = z.object({
     .enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
     .default('info'),
   DB_PATH: z.string().default('./data/polito-mcp.sqlite'),
+  // Turso/libSQL remote URL (e.g. libsql://your-db.turso.io). When set, the
+  // server connects to Turso instead of the local file at DB_PATH — this is
+  // the persistent-storage option for cloud deployments. Requires LIBSQL_AUTH_TOKEN.
+  LIBSQL_URL: z.string().optional(),
+  LIBSQL_AUTH_TOKEN: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });

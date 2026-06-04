@@ -24,12 +24,10 @@ interactive **Libretto** widgets, including a navigable dashboard.
 **Repo:** https://github.com/FAZIO11/polito-mcp-app  (private, branch `main`)
 **Live:** https://bold-cloud-1ucpl.run.mcp-use.com/mcp  (mcp-use cloud / Manufact, org Fazio, EU)
 **Status:** Migration + 5 data widgets + dashboard + cloud deploy all DONE and
-verified live. **46 MCP tools, 6 widgets.** Storage is currently ephemeral on the
-cloud (see Deployment). Next focus: iterating on the design language.
-
-> ⚠️ The live deployment lags `main` by one commit when you arrive: the connect-
-> card + auto-size fix (`69bc83a`) is pushed but a **redeploy** is needed to make
-> it live (the deployed build is `8467178`). Redeploy from the Manufact dashboard.
+verified live. **46 MCP tools, 6 widgets.** DB migrated to `@libsql/client` (Turso-ready;
+persistent storage once `LIBSQL_URL` + `LIBSQL_AUTH_TOKEN` are configured on Manufact).
+Sliding session windows added — active users never get logged out. Next focus: create
+Turso DB + set env vars on Manufact, then iterate on the design language.
 
 ---
 
@@ -285,10 +283,12 @@ Configure Deployment form:
   `/mcp` so `/connect` + OAuth links resolve. (Don't undo that normalization.)
 - `@mcp-use/cli` is a declared devDependency (the build's `mcp-use` binary).
 
-> **⚠️ Persistence (the open item):** the SQLite DB lives in `/tmp` and **resets on
-> every redeploy** (Manufact exposes no persistent volume). Fine for testing; for
-> real users, move state to **Turso/libSQL** (serverless SQLite, minimal change
-> since we're already on SQLite) before relying on connected accounts persisting.
+> **Persistence:** the DB layer is now `@libsql/client` (Turso-ready). For the
+> live deploy to survive redeploys, create a Turso database and set two env vars
+> on the Manufact deployment: `LIBSQL_URL=libsql://your-db.turso.io` and
+> `LIBSQL_AUTH_TOKEN=<token>`. Without these the server falls back to the local
+> `/tmp` file and still resets on redeploy. Once the vars are set, all user data
+> is stored in Turso and persists across deploys forever.
 
 Manage: `npx mcp-use deployments list|logs|...`, `npx mcp-use servers ...`,
 `npx mcp-use org ...`. (`cloud` is NOT a subcommand in CLI 3.2.)
@@ -316,8 +316,10 @@ Manage: `npx mcp-use deployments list|logs|...`, `npx mcp-use servers ...`,
 ## Open threads / next steps
 
 1. **Redeploy** to make `69bc83a` (connect card + auto-size) live.
-2. Iterate on the **Libretto** design language (the current focus).
-3. **Turso/libSQL** migration for persistent storage before real users.
+2. **Enable Turso persistence:** create a DB at turso.io, set `LIBSQL_URL` +
+   `LIBSQL_AUTH_TOKEN` on the Manufact deployment — then users never lose their
+   linked accounts across redeploys.
+3. Iterate on the **Libretto** design language (the current focus).
 4. Optional: guard `serve()` in `index.ts` behind a main-module check so
    `mcp-use build` can import the entry without starting a listener.
 5. `eslint.config.js` (flat config) to un-break `npm run lint`.

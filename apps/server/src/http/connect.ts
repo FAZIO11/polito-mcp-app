@@ -78,9 +78,9 @@ export function createConnectApp(): Hono<AppEnv> {
   app.use('/connect', rateLimit({ max: 10, windowMs: 60_000, scope: 'connect' }));
 
   // GET /connect?s=<session_id>  — renders the login form
-  app.get('/connect', (c) => {
+  app.get('/connect', async (c) => {
     const s = c.req.query('s') ?? '';
-    if (!s || !isValidSession(s)) {
+    if (!s || !(await isValidSession(s))) {
       return c.html(renderExpired(), 400);
     }
     const cfg = loadConfig();
@@ -110,7 +110,7 @@ export function createConnectApp(): Hono<AppEnv> {
         prefillUsername: rawUsername,
       }), 422);
 
-    if (!s || !isValidSession(s)) {
+    if (!s || !(await isValidSession(s))) {
       return c.html(renderExpired(), 400);
     }
 
@@ -133,13 +133,13 @@ export function createConnectApp(): Hono<AppEnv> {
       });
       pwHolder.value = '';
 
-      const user = upsertUserAndToken({
+      const user = await upsertUserAndToken({
         username: identity.username,
         politoClientId: identity.clientId ?? null,
         politoToken: identity.token,
       });
 
-      linkSessionToUser(s, user.user_id);
+      await linkSessionToUser(s, user.user_id);
 
       // Store IP → userId so any new MCP session from this device is
       // auto-authenticated even after the client reconnects with a new session ID.
@@ -147,7 +147,7 @@ export function createConnectApp(): Hono<AppEnv> {
         c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
         c.req.header('x-real-ip') ??
         'unknown';
-      if (clientIp !== 'unknown') upsertIpSession(clientIp, user.user_id);
+      if (clientIp !== 'unknown') await upsertIpSession(clientIp, user.user_id);
 
       logger.info({ userId: user.user_id, ip: clientIp }, 'connect: session linked');
 

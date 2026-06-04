@@ -2,7 +2,14 @@ import { MCPServer, type McpServerInstance } from 'mcp-use/server';
 import type { MiddlewareHandler } from 'hono';
 import { verifyAccessToken } from '../auth/jwt.js';
 import { findUserById } from '../db/users.js';
-import { createPendingSession, linkSessionToUser, lookupSessionUserId, lookupIpUserId } from '../db/sessions.js';
+import {
+  createPendingSession,
+  linkSessionToUser,
+  lookupSessionUserId,
+  lookupIpUserId,
+  renewSession,
+  touchIpSession,
+} from '../db/sessions.js';
 import { loadConfig } from '../config.js';
 import { logger } from '../logger.js';
 import type { AppEnv, PolitoSessionAuth } from '../http/context.js';
@@ -14,8 +21,8 @@ import { registerTools } from './tools.js';
  * tool callbacks (the `ctx` arg is `Object.create(requestContext)`), so tools
  * read this back via `getPolitoAuthExtra(ctx)`.
  *
- * Resolution order mirrors the previous transport: Bearer JWT, then the MCP
- * session id, then a 30-day IP mapping established at /connect time.
+ * Resolution order: Bearer JWT → MCP session id → 30-day IP mapping.
+ * Active sessions get their 30-day TTL renewed on each use (sliding window).
  */
 function resolveMcpAuth(): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
@@ -28,7 +35,7 @@ function resolveMcpAuth(): MiddlewareHandler<AppEnv> {
 
     // Make sure the session row exists so the /connect?s=<id> login link the
     // tools hand out resolves to a valid (pending) session.
-    if (sessionId) createPendingSession(sessionId);
+    if (sessionId) await createPendingSession(sessionId);
 
     let userId: string | null = null;
     let clientId = 'session';
@@ -41,13 +48,13 @@ function resolveMcpAuth(): MiddlewareHandler<AppEnv> {
     if (bearer) {
       try {
         const claims = await verifyAccessToken(bearer);
-        const user = findUserById(claims.sub);
+        const user = await findUserById(claims.sub);
         if (user) {
           userId = claims.sub;
           clientId = claims.client_id;
           username = user.polito_username;
           // Keep session in sync so expired JWTs fall back to session auth.
-          if (sessionId) linkSessionToUser(sessionId, userId);
+          if (sessionId) await linkSessionToUser(sessionId, userId);
         }
       } catch (err) {
         logger.info({ err }, 'JWT verification failed; falling back to session auth');
@@ -55,9 +62,10 @@ function resolveMcpAuth(): MiddlewareHandler<AppEnv> {
     }
 
     if (!userId && sessionId) {
-      userId = lookupSessionUserId(sessionId);
+      userId = await lookupSessionUserId(sessionId);
       if (userId) {
-        username = findUserById(userId)?.polito_username ?? '';
+        username = (await findUserById(userId))?.polito_username ?? '';
+        await renewSession(sessionId);
       }
     }
 
@@ -65,10 +73,11 @@ function resolveMcpAuth(): MiddlewareHandler<AppEnv> {
     // IP is stored for 30 days so new sessions from the same device are
     // auto-authenticated even when the client reconnects with a fresh session.
     if (!userId && clientIp) {
-      userId = lookupIpUserId(clientIp);
+      userId = await lookupIpUserId(clientIp);
       if (userId) {
-        username = findUserById(userId)?.polito_username ?? '';
-        if (sessionId) linkSessionToUser(sessionId, userId);
+        username = (await findUserById(userId))?.polito_username ?? '';
+        if (sessionId) await linkSessionToUser(sessionId, userId);
+        await touchIpSession(clientIp);
       }
     }
 

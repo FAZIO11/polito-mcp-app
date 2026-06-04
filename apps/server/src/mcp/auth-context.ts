@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import { loadConfig } from '../config.js';
 import { logger } from '../logger.js';
 import { getDecryptedToken, markTokenRevoked, touchLastSeen } from '../db/users.js';
+import { lookupLatestSessionForUser } from '../db/sessions.js';
 import { PolitoApiError, PolitoClient } from '../polito/client.js';
 import type { AppEnv, PolitoSessionAuth } from '../http/context.js';
 
@@ -40,11 +41,14 @@ export function getPolitoAuthExtra(ctx: Context): PolitoAuthExtra {
 }
 
 /** Build a PolitoClient for the current tool call, lazily loading the bearer. */
-export function clientForUser(userId: string): PolitoClient {
+export async function clientForUser(userId: string): Promise<PolitoClient> {
   const cfg = loadConfig();
-  const token = getDecryptedToken(userId);
-  if (!token) throw new ToolAuthError('no_active_token');
-  touchLastSeen(userId);
+  const token = await getDecryptedToken(userId);
+  if (!token) {
+    const sessionId = await lookupLatestSessionForUser(userId);
+    throw new ToolAuthError('no_active_token', sessionId);
+  }
+  await touchLastSeen(userId);
   return new PolitoClient(cfg.POLITO_BASE_URL, token);
 }
 
@@ -57,15 +61,16 @@ export async function withPoliTo<T>(
   userId: string,
   fn: (client: PolitoClient) => Promise<T>,
 ): Promise<T> {
-  const client = clientForUser(userId);
+  const client = await clientForUser(userId);
   try {
     return await fn(client);
   } catch (err) {
     if (err instanceof PolitoApiError) {
       if (err.isUnauthorized()) {
         logger.warn({ userId }, 'Upstream 401 — marking stored token revoked');
-        markTokenRevoked(userId);
-        throw new ToolAuthError('re_auth_required');
+        await markTokenRevoked(userId);
+        const sessionId = await lookupLatestSessionForUser(userId);
+        throw new ToolAuthError('re_auth_required', sessionId);
       }
     }
     throw err;
@@ -74,7 +79,7 @@ export async function withPoliTo<T>(
 
 export class ToolAuthError extends Error {
   readonly code: 'not_authenticated' | 'no_active_token' | 're_auth_required';
-  /** Present when code === 'not_authenticated' so handleError can build the login URL. */
+  /** Present when a session ID is available so handleError can build the login URL. */
   readonly sessionId: string | null;
   constructor(
     code: 'not_authenticated' | 'no_active_token' | 're_auth_required',

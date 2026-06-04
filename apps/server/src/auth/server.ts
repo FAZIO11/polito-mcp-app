@@ -9,7 +9,7 @@ import {
   issueAuthCode,
   registerClient,
 } from '../db/oauth.js';
-import { findUserByUsername } from '../db/users.js';
+import { findUserByUsername, findUserById } from '../db/users.js';
 import { rateLimit, recordMatricolaAttempt } from '../http/rate-limit.js';
 import { renderLoginPage } from '../http/login-page.js';
 import { BadCredentialsError, PasswordStrategy } from './password.js';
@@ -124,7 +124,7 @@ export function createAuthServer(strategy: AuthStrategy = new PasswordStrategy()
         400,
       );
     }
-    const client = registerClient({
+    const client = await registerClient({
       client_name: parsed.data.client_name ?? null,
       redirect_uris: parsed.data.redirect_uris,
     });
@@ -188,11 +188,11 @@ export function createAuthServer(strategy: AuthStrategy = new PasswordStrategy()
 
     try {
       const upstream = await strategy.complete(c);
-      const user = findUserByUsername(upstream.politoUsername);
+      const user = await findUserByUsername(upstream.politoUsername);
       if (!user) {
         return badAuthorizeRequest(c, 'Internal error: user record missing after login.');
       }
-      const issued = issueAuthCode({
+      const issued = await issueAuthCode({
         client_id: parsed.data.client_id,
         user_id: user.user_id,
         redirect_uri: parsed.data.redirect_uri,
@@ -233,7 +233,7 @@ export function createAuthServer(strategy: AuthStrategy = new PasswordStrategy()
     if (!parsed.success) {
       return c.json({ error: 'invalid_request', error_description: parsed.error.message }, 400);
     }
-    const code = consumeAuthCode(parsed.data.code);
+    const code = await consumeAuthCode(parsed.data.code);
     if (!code) {
       return c.json({ error: 'invalid_grant' }, 400);
     }
@@ -247,11 +247,10 @@ export function createAuthServer(strategy: AuthStrategy = new PasswordStrategy()
       return c.json({ error: 'invalid_grant' }, 400);
     }
 
-    const client = findClient(code.client_id);
+    const client = await findClient(code.client_id);
     if (!client) return c.json({ error: 'invalid_client' }, 400);
 
-    // We need the polito_username for display claims.
-    const userRow = await import('../db/users.js').then((m) => m.findUserById(code.user_id));
+    const userRow = await findUserById(code.user_id);
     if (!userRow) return c.json({ error: 'invalid_grant' }, 400);
 
     const token = await signAccessToken({
@@ -315,7 +314,7 @@ export function createAuthServer(strategy: AuthStrategy = new PasswordStrategy()
   async function validateAuthorize(
     q: z.infer<typeof AuthorizeQuery>,
   ): Promise<{ ok: true } | { error: string }> {
-    const client = findClient(q.client_id);
+    const client = await findClient(q.client_id);
     if (!client) return { error: 'Unknown client_id. Register first at /register.' };
     if (!client.redirect_uris.includes(q.redirect_uri)) {
       return { error: 'redirect_uri does not match the registration.' };

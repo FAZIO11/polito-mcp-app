@@ -3,6 +3,7 @@ import { createAuthServer } from './auth/server.js';
 import { createMcpServer } from './mcp/server.js';
 import { createAccountApp } from './http/account.js';
 import { createConnectApp } from './http/connect.js';
+import { initializeDb } from './db/sqlite.js';
 import { loadConfig } from './config.js';
 import { logger } from './logger.js';
 import type { AppEnv } from './http/context.js';
@@ -17,6 +18,8 @@ import type { AppEnv } from './http/context.js';
  * tests. `createApp` is async because `getHandler()` mounts the MCP endpoints.
  */
 export async function createApp(): Promise<Hono<AppEnv>> {
+  await initializeDb();
+
   const server = createMcpServer();
   const app = server.app as unknown as Hono<AppEnv>;
 

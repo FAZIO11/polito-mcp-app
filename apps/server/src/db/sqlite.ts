@@ -1,33 +1,16 @@
-import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { loadConfig } from '../config.js';
+import { getClient, closeClient } from './libsql.js';
 
-let db: Database.Database | null = null;
-
-export function getDb(): Database.Database {
-  if (db) return db;
+export async function initializeDb(): Promise<void> {
   const cfg = loadConfig();
-  const path = resolve(cfg.DB_PATH);
-  mkdirSync(dirname(path), { recursive: true });
-  const inst = new Database(path);
-  inst.pragma('journal_mode = WAL');
-  inst.pragma('synchronous = NORMAL');
-  inst.pragma('foreign_keys = ON');
-  migrate(inst);
-  db = inst;
-  return db;
-}
-
-export function closeDb(): void {
-  if (db) {
-    db.close();
-    db = null;
+  // Create local data directory when using a file-based DB (not Turso remote).
+  if (!cfg.LIBSQL_URL && cfg.DB_PATH !== ':memory:') {
+    mkdirSync(dirname(resolve(cfg.DB_PATH)), { recursive: true });
   }
-}
 
-function migrate(d: Database.Database): void {
-  d.exec(`
+  await getClient().executeMultiple(`
     CREATE TABLE IF NOT EXISTS schema_meta (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -41,7 +24,6 @@ function migrate(d: Database.Database): void {
       last_seen INTEGER NOT NULL
     );
 
-    -- ciphertext column is base64(iv||ct||tag) of the upstream bearer token.
     CREATE TABLE IF NOT EXISTS user_tokens (
       user_id TEXT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
       polito_token_ct TEXT NOT NULL,
@@ -49,7 +31,6 @@ function migrate(d: Database.Database): void {
       revoked INTEGER NOT NULL DEFAULT 0
     );
 
-    -- RFC 7591 dynamically-registered OAuth clients.
     CREATE TABLE IF NOT EXISTS oauth_clients (
       client_id TEXT PRIMARY KEY,
       client_name TEXT,
@@ -57,7 +38,6 @@ function migrate(d: Database.Database): void {
       created_at INTEGER NOT NULL
     );
 
-    -- Short-lived OAuth authorization codes.
     CREATE TABLE IF NOT EXISTS oauth_codes (
       code TEXT PRIMARY KEY,
       client_id TEXT NOT NULL,
@@ -71,8 +51,6 @@ function migrate(d: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_oauth_codes_expiry ON oauth_codes(expires_at);
 
-    -- Session-based auth: maps an MCP session ID to a user after /connect login.
-    -- Pending sessions (user_id IS NULL) expire in 15 min; linked ones last 30 days.
     CREATE TABLE IF NOT EXISTS mcp_sessions (
       session_id TEXT PRIMARY KEY,
       user_id TEXT REFERENCES users(user_id) ON DELETE CASCADE,
@@ -83,9 +61,6 @@ function migrate(d: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_mcp_sessions_user ON mcp_sessions(user_id);
     CREATE INDEX IF NOT EXISTS idx_mcp_sessions_expiry ON mcp_sessions(expires_at);
 
-    -- Maps a client IP to a userId after a successful /connect login.
-    -- Lets new MCP sessions from the same IP be auto-authenticated without
-    -- requiring session ID persistence across client reconnects.
     CREATE TABLE IF NOT EXISTS ip_sessions (
       ip TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -94,4 +69,8 @@ function migrate(d: Database.Database): void {
 
     INSERT OR IGNORE INTO schema_meta (key, value) VALUES ('version', '1');
   `);
+}
+
+export function closeDb(): void {
+  closeClient();
 }

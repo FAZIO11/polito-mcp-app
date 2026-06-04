@@ -52,7 +52,7 @@ export class PasswordStrategy implements AuthStrategy {
       };
 
       // Persist immediately so the OAuth code-exchange step can look us up.
-      upsertUserAndToken({
+      await upsertUserAndToken({
         username: result.politoUsername,
         politoClientId: result.politoClientId,
         politoToken: result.politoToken,
