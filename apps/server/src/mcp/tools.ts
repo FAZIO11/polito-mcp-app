@@ -140,6 +140,36 @@ export function registerTools(server: McpServerInstance): void {
     },
   );
 
+  // ---------- Temporary debug tool (remove after diagnosing ChatGPT auth) ----------
+
+  server.tool(
+    {
+      name: 'debug_request_context',
+      title: 'Debug: inspect MCP request headers',
+      description:
+        'Returns the raw headers received by the server for this request and the resolved auth state. Used to diagnose why ChatGPT re-asks for authentication on every conversation.',
+      schema: z.object({}),
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    },
+    async (_params, ctx) => {
+      const rawCtx = ctx as unknown as import('hono').Context;
+      const headers: Record<string, string> = {};
+      rawCtx.req.raw.headers.forEach((value: string, key: string) => {
+        headers[key] =
+          key.toLowerCase() === 'authorization' || key.toLowerCase() === 'cookie'
+            ? `[redacted, length=${value.length}]`
+            : value;
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const auth = (rawCtx as any).get('politoAuth') as Record<string, unknown> | undefined;
+      return json({
+        mcp_session_id: headers['mcp-session-id'] ?? null,
+        resolved_user_id: auth?.userId ?? null,
+        all_headers: headers,
+      });
+    },
+  );
+
   // ---------- Profile ----------
 
   server.tool(
