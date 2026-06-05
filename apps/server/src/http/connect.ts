@@ -3,7 +3,7 @@ import { loadConfig } from '../config.js';
 import { PolitoClient, PolitoApiError } from '../polito/client.js';
 import { normalizePolitoLoginUsername } from '../auth/login-username.js';
 import { upsertUserAndToken } from '../db/users.js';
-import { isValidSession, linkSessionToUser, upsertIpSession } from '../db/sessions.js';
+import { isValidSession, linkSessionToUser, upsertIpSession, getSessionSubject, upsertSubjectSession } from '../db/sessions.js';
 import { renderLoginPage } from './login-page.js';
 import { rateLimit, recordMatricolaAttempt } from './rate-limit.js';
 import { logger } from '../logger.js';
@@ -148,6 +148,11 @@ export function createConnectApp(): Hono<AppEnv> {
         c.req.header('x-real-ip') ??
         'unknown';
       if (clientIp !== 'unknown') await upsertIpSession(clientIp, user.user_id);
+
+      // Store OpenAI subject → userId so ChatGPT auto-authenticates across
+      // all future conversations without needing to re-connect.
+      const subject = await getSessionSubject(s);
+      if (subject) await upsertSubjectSession(subject, user.user_id);
 
       logger.info({ userId: user.user_id, ip: clientIp }, 'connect: session linked');
 

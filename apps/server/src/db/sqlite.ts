@@ -67,8 +67,21 @@ export async function initializeDb(): Promise<void> {
       expires_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS subject_sessions (
+      subject TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+      expires_at INTEGER NOT NULL
+    );
+
     INSERT OR IGNORE INTO schema_meta (key, value) VALUES ('version', '1');
   `);
+
+  // Migration: add openai_subject column to mcp_sessions (safe to retry — ignored if already exists).
+  try {
+    await getClient().execute('ALTER TABLE mcp_sessions ADD COLUMN openai_subject TEXT');
+  } catch {
+    // Column already exists.
+  }
 }
 
 export function closeDb(): void {

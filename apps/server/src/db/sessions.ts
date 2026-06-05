@@ -64,6 +64,54 @@ export async function lookupLatestSessionForUser(userId: string): Promise<string
   return row ? (row['session_id'] as string) : null;
 }
 
+// ---- OpenAI subject-based auth (persists across ChatGPT conversations) ----
+
+/** Store the x-openai-subject on the pending session so /connect can propagate it. */
+export async function setSessionSubject(sessionId: string, subject: string): Promise<void> {
+  await getClient().execute({
+    sql: 'UPDATE mcp_sessions SET openai_subject = ? WHERE session_id = ?',
+    args: [subject, sessionId],
+  });
+}
+
+/** Returns the openai_subject stored on a session, or null. */
+export async function getSessionSubject(sessionId: string): Promise<string | null> {
+  const result = await getClient().execute({
+    sql: 'SELECT openai_subject FROM mcp_sessions WHERE session_id = ?',
+    args: [sessionId],
+  });
+  const row = result.rows[0];
+  return row ? (row['openai_subject'] as string | null) : null;
+}
+
+const SUBJECT_SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
+
+/** Store subject → userId so future sessions from the same ChatGPT account auto-auth. */
+export async function upsertSubjectSession(subject: string, userId: string): Promise<void> {
+  await getClient().execute({
+    sql: 'INSERT INTO subject_sessions (subject, user_id, expires_at) VALUES (?, ?, ?) ON CONFLICT(subject) DO UPDATE SET user_id = excluded.user_id, expires_at = excluded.expires_at',
+    args: [subject, userId, Date.now() + SUBJECT_SESSION_TTL_MS],
+  });
+}
+
+/** Returns the userId for this subject if it has a live mapping, otherwise null. */
+export async function lookupSubjectUserId(subject: string): Promise<string | null> {
+  const result = await getClient().execute({
+    sql: 'SELECT user_id FROM subject_sessions WHERE subject = ? AND expires_at > ?',
+    args: [subject, Date.now()],
+  });
+  const row = result.rows[0];
+  return row ? (row['user_id'] as string) : null;
+}
+
+/** Extend the expiry of a subject session (sliding window). */
+export async function touchSubjectSession(subject: string): Promise<void> {
+  await getClient().execute({
+    sql: 'UPDATE subject_sessions SET expires_at = ? WHERE subject = ?',
+    args: [Date.now() + SUBJECT_SESSION_TTL_MS, subject],
+  });
+}
+
 // ---- IP-based auth (persists across MCP reconnects) ----
 
 /** Called after a successful /connect login to remember this IP → user mapping. */

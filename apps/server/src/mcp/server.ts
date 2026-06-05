@@ -9,6 +9,9 @@ import {
   lookupIpUserId,
   renewSession,
   touchIpSession,
+  setSessionSubject,
+  lookupSubjectUserId,
+  touchSubjectSession,
 } from '../db/sessions.js';
 import { loadConfig } from '../config.js';
 import { logger } from '../logger.js';
@@ -32,10 +35,15 @@ function resolveMcpAuth(): MiddlewareHandler<AppEnv> {
       c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
       c.req.header('x-real-ip') ??
       null;
+    const openaiSubject = c.req.header('x-openai-subject') ?? null;
 
     // Make sure the session row exists so the /connect?s=<id> login link the
     // tools hand out resolves to a valid (pending) session.
     if (sessionId) await createPendingSession(sessionId);
+
+    // Attach the stable OpenAI user identity to the session so /connect can
+    // store the subject → userId mapping once the user authenticates.
+    if (sessionId && openaiSubject) await setSessionSubject(sessionId, openaiSubject);
 
     let userId: string | null = null;
     let clientId = 'session';
@@ -69,15 +77,26 @@ function resolveMcpAuth(): MiddlewareHandler<AppEnv> {
       }
     }
 
-    // Last resort: IP-based auth. After a successful /connect login the user's
-    // IP is stored for 30 days so new sessions from the same device are
-    // auto-authenticated even when the client reconnects with a fresh session.
+    // IP-based auth. After a successful /connect login the user's IP is stored
+    // for 30 days so new sessions from the same device auto-authenticate.
     if (!userId && clientIp) {
       userId = await lookupIpUserId(clientIp);
       if (userId) {
         username = (await findUserById(userId))?.polito_username ?? '';
         if (sessionId) await linkSessionToUser(sessionId, userId);
         await touchIpSession(clientIp);
+      }
+    }
+
+    // Subject-based auth (ChatGPT / OpenAI). x-openai-subject is a stable
+    // per-user identity forwarded by mcp-use cloud. Once a user completes
+    // /connect in any conversation, all future conversations auto-authenticate.
+    if (!userId && openaiSubject) {
+      userId = await lookupSubjectUserId(openaiSubject);
+      if (userId) {
+        username = (await findUserById(userId))?.polito_username ?? '';
+        if (sessionId) await linkSessionToUser(sessionId, userId);
+        await touchSubjectSession(openaiSubject);
       }
     }
 
