@@ -93,7 +93,7 @@ const totalTools = categories.reduce((sum, cat) => sum + cat.tools.length, 0);
       subtitle={`${totalTools} MCP tools. Every API endpoint. Zero manual work.`}
     />
 
-    <div class="reveal mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-delay="40">
+    <div class="reveal is-in mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-delay="40">
       {categories.map((category) => (
         <div class="category-card group border border-line bg-near p-6 transition-all hover:border-blue/30">
           <div class="flex items-start justify-between">
@@ -121,7 +121,7 @@ const totalTools = categories.reduce((sum, cat) => sum + cat.tools.length, 0);
     </div>
 
     <!-- CTA banner -->
-    <div class="reveal mt-16 border-2 border-blue bg-blue/5 p-8 text-center sm:p-12" data-delay="80">
+    <div class="reveal is-in mt-16 border-2 border-blue bg-blue/5 p-8 text-center sm:p-12" data-delay="80">
       <p class="font-display text-3xl text-white sm:text-4xl">
         Every tool works in plain language.
       </p>

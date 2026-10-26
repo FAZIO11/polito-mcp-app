@@ -50,13 +50,15 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? site.origin).href;
 
     <script>
       // Progressive enhancement: fade sections in as they enter the viewport.
-      // Everything is fully visible if JS is off (the .reveal base state only
-      // applies under prefers-reduced-motion: no-preference + this observer).
+      // Elements start with .is-in (visible) in SSR. JS removes it and sets up
+      // scroll reveals only when animations are supported and preferred.
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const els = document.querySelectorAll<HTMLElement>(".reveal");
-      if (reduce || !("IntersectionObserver" in window)) {
-        els.forEach((el) => el.classList.add("is-in"));
-      } else {
+      
+      if (!reduce && "IntersectionObserver" in window) {
+        // Remove is-in to enable scroll reveals
+        els.forEach((el) => el.classList.remove("is-in"));
+        
         const io = new IntersectionObserver(
           (entries) => {
             for (const e of entries) {
@@ -72,6 +74,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? site.origin).href;
         );
         els.forEach((el) => io.observe(el));
       }
+      // Otherwise elements stay visible with .is-in class
     </script>
   </body>
 </html>

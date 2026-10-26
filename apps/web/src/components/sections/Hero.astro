@@ -15,7 +15,7 @@ const meta = [
 
   <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
     <!-- eyebrow row -->
-    <div class="reveal flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line py-3.5">
+    <div class="reveal is-in flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line py-3.5">
       <span class="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ash">
         <span class="inline-block h-1.5 w-1.5 bg-orange"></span>
         Unofficial
@@ -28,21 +28,21 @@ const meta = [
     <!-- hero body -->
     <div class="grid items-start gap-10 py-14 lg:grid-cols-[1.1fr_1fr] lg:gap-12 lg:py-20">
       <div>
-        <h1 class="reveal font-display text-[clamp(4.5rem,13vw,11rem)] text-white" data-delay="20">
+        <h1 class="reveal is-in font-display text-[clamp(4.5rem,13vw,11rem)] text-white" data-delay="20">
           Polito<span class="text-blue">—</span>mcp
         </h1>
 
-        <p class="reveal mt-2 max-w-xl text-balance text-xl leading-snug text-white sm:text-2xl" data-delay="60">
+        <p class="reveal is-in mt-2 max-w-xl text-balance text-xl leading-snug text-white sm:text-2xl" data-delay="60">
           Your Politecnico account, answerable in plain language.
         </p>
 
-        <p class="reveal mt-5 max-w-lg text-base leading-relaxed text-ash" data-delay="100">
+        <p class="reveal is-in mt-5 max-w-lg text-base leading-relaxed text-ash" data-delay="100">
           A remote MCP server that wires Claude, Cursor and any compatible client
           straight into the PoliTO student API. Grades, lectures, deadlines, course
           materials, exam booking, free rooms — pulled live, on request.
         </p>
 
-        <div class="reveal mt-8 flex flex-wrap items-center gap-3" data-delay="140">
+        <div class="reveal is-in mt-8 flex flex-wrap items-center gap-3" data-delay="140">
           <a
             href="/docs/quickstart/"
             class="inline-flex h-11 items-center bg-orange px-6 font-mono text-xs uppercase tracking-[0.16em] text-white transition-all hover:shadow-cta"
@@ -59,7 +59,7 @@ const meta = [
         </div>
 
         <!-- metadata table -->
-        <dl class="reveal mt-12 max-w-md border border-line" data-delay="180">
+        <dl class="reveal is-in mt-12 max-w-md border border-line" data-delay="180">
           {
             meta.map((m, i) => (
               <div class={`flex items-center justify-between px-4 py-3 ${i < meta.length - 1 ? "border-b border-line" : ""}`}>
@@ -71,7 +71,7 @@ const meta = [
         </dl>
       </div>
 
-      <div class="reveal lg:pt-10" data-delay="120">
+      <div class="reveal is-in lg:pt-10" data-delay="120">
         <ChatMock />
       </div>
     </div>
