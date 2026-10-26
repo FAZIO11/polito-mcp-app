@@ -1,0 +1,90 @@
+---
+import SectionHeader from "../SectionHeader.astro";
+
+const faqs = [
+  {
+    q: "Is this official?",
+    a: "No. polito-mcp is an unofficial, student-built project with no affiliation to Politecnico di Torino. It consumes the same public student API that the official PoliTO app uses.",
+  },
+  {
+    q: "How do I connect?",
+    a: "Add the server URL to your MCP client settings (Claude Desktop, Cursor, ChatGPT, or VS Code). The first time you ask a question, you'll be redirected to sign in with your PoliTO credentials via OAuth. Takes under a minute.",
+  },
+  {
+    q: "What about my password?",
+    a: "Your credentials go directly to app.didattica.polito.it over TLS. We never see or store your password — only the API bearer token, encrypted at rest with AES-256-GCM.",
+  },
+  {
+    q: "Which clients work?",
+    a: "Any MCP-compatible client: Claude Desktop, Claude.ai (Pro), Cursor, Windsurf, VS Code with Copilot MCP. If it speaks MCP over Streamable HTTP, it works.",
+  },
+  {
+    q: "Can it write data?",
+    a: "Yes, but only with explicit confirmation. You can book exams, accept grades, mark messages read, and close tickets. Destructive actions (like rejecting a grade) require confirm: true.",
+  },
+  {
+    q: "What's stored?",
+    a: "Your encrypted PoliTO bearer token, a user ID, and MCP session mappings. No grades, no messages, no personal data. You can delete everything with the delete_my_account tool.",
+  },
+  {
+    q: "Is it free?",
+    a: "Yes. Open source (AGPL-3.0). No subscription, no API keys, no limits. Hosting costs are currently covered by the maintainer.",
+  },
+  {
+    q: "Can I self-host?",
+    a: "Absolutely. The entire stack is open source. Clone the repo, generate your own secrets, point it at the PoliTO API, and deploy. Full instructions in the README.",
+  },
+];
+---
+
+<section id="faq" class="relative border-b border-line py-16 sm:py-20">
+  <div class="relative mx-auto max-w-4xl px-5 sm:px-8">
+    <SectionHeader
+      title="FAQ"
+      subtitle="Questions from the first 100 testers"
+    />
+
+    <dl class="reveal mt-16 space-y-1" data-delay="40">
+      {faqs.map((faq, i) => (
+        <details class="faq-item group border border-line bg-near">
+          <summary class="flex cursor-pointer items-center justify-between px-6 py-4 font-mono text-sm uppercase tracking-[0.14em] text-white transition-colors hover:text-blue">
+            <span>{faq.q}</span>
+            <svg 
+              class="h-4 w-4 flex-shrink-0 transition-transform group-open:rotate-180" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </summary>
+          <div class="border-t border-line px-6 py-5 text-sm leading-relaxed text-ash">
+            {faq.a}
+          </div>
+        </details>
+      ))}
+    </dl>
+
+    <div class="reveal mt-12 border-l-2 border-blue bg-near px-6 py-5" data-delay="80">
+      <p class="font-mono text-xs uppercase tracking-[0.16em] text-blue">Still have questions?</p>
+      <p class="mt-2 text-sm text-ash">
+        Check the <a href="/docs/faq/" class="text-white underline underline-offset-2 hover:text-blue">full FAQ</a> or 
+        open an issue on <a href="https://github.com/FAZIO11/polito-mcp-app/issues" target="_blank" rel="noopener noreferrer" class="text-white underline underline-offset-2 hover:text-blue">GitHub</a>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq-item[open] {
+    border-color: var(--color-blue);
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item summary::marker {
+    display: none;
+  }
+</style>

@@ -1,0 +1,51 @@
+---
+// Display client logos with proper attribution
+
+const clients = [
+  { name: "Claude", logo: "/logos/anthropic.svg", color: "#d97757" },
+  { name: "ChatGPT", logo: "/logos/openai.svg", color: "#10a37f" },
+  { name: "Cursor", logo: "/logos/cursor.svg", color: "#000000" },
+  { name: "VS Code", logo: "/logos/vscode.svg", color: "#007acc" },
+];
+---
+
+<section class="relative border-b border-line py-16 sm:py-20">
+  <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="text-center">
+      <h2 class="reveal font-display text-[clamp(2.5rem,6vw,4rem)] text-white">
+        Works<span class="text-blue">—</span>with
+      </h2>
+      <p class="reveal mt-3 text-ash" data-delay="40">
+        Any MCP-compatible AI client. Connects in seconds.
+      </p>
+    </div>
+
+    <div class="reveal mt-12 grid grid-cols-2 gap-6 sm:mt-16 sm:grid-cols-4 sm:gap-8" data-delay="80">
+      {clients.map((client) => (
+        <div class="group flex flex-col items-center gap-4 border border-line bg-near p-6 transition-all hover:border-line-strong sm:p-8">
+          <div class="grid h-14 w-14 place-items-center text-ash transition-all group-hover:scale-110 group-hover:text-white sm:h-16 sm:w-16">
+            <img 
+              src={client.logo} 
+              alt={`${client.name} logo`}
+              class="h-full w-full"
+              style={`filter: brightness(0.7); transition: filter 0.3s;`}
+            />
+          </div>
+          <span class="font-mono text-xs uppercase tracking-[0.16em] text-ash transition-colors group-hover:text-white">
+            {client.name}
+          </span>
+        </div>
+      ))}
+    </div>
+
+    <p class="reveal mt-10 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-ash-dim" data-delay="120">
+      Logos are trademarks of their respective owners · polito-mcp is unofficial
+    </p>
+  </div>
+</section>
+
+<style>
+  .group:hover img {
+    filter: brightness(1) !important;
+  }
+</style>

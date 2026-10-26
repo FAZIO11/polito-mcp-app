@@ -1,0 +1,162 @@
+---
+import SectionHeader from "../SectionHeader.astro";
+import Icon from "../Icon.astro";
+
+const categories = [
+  {
+    name: "Academic Progress",
+    icon: "📊",
+    tools: [
+      { name: "get_grades", desc: "View all recorded exam grades with weighted average" },
+      { name: "get_profile", desc: "Student profile, degree, credits, and career info" },
+      { name: "get_provisional_grades", desc: "Accept or reject provisional exam results" },
+      { name: "get_course_statistics", desc: "Pass rates and grade distributions" },
+    ],
+  },
+  {
+    name: "Schedule & Deadlines",
+    icon: "📅",
+    tools: [
+      { name: "list_today_lectures", desc: "Today's lectures with times and locations" },
+      { name: "list_lectures", desc: "Lectures in any date range" },
+      { name: "list_deadlines", desc: "Academic and administrative deadlines" },
+      { name: "get_next_lecture", desc: "Next scheduled lecture for a course" },
+    ],
+  },
+  {
+    name: "Exams & Bookings",
+    icon: "✅",
+    tools: [
+      { name: "list_exams", desc: "Available exam sessions (appelli)" },
+      { name: "list_bookings", desc: "Your active bookings and reservations" },
+      { name: "book_exam", desc: "Book an exam session" },
+      { name: "cancel_exam_booking", desc: "Cancel an existing booking" },
+    ],
+  },
+  {
+    name: "Campus & Rooms",
+    icon: "🏫",
+    tools: [
+      { name: "find_free_classrooms", desc: "Find available study rooms right now" },
+      { name: "list_free_rooms", desc: "Search free rooms by campus and time" },
+      { name: "search_places", desc: "Find specific rooms, labs, or buildings" },
+      { name: "get_place", desc: "Room details: capacity, floor, equipment" },
+    ],
+  },
+  {
+    name: "Courses & Materials",
+    icon: "📚",
+    tools: [
+      { name: "list_courses", desc: "All enrolled courses" },
+      { name: "get_course", desc: "Course details and instructors" },
+      { name: "list_course_notices", desc: "Professor announcements" },
+      { name: "list_course_files", desc: "Downloadable course materials" },
+      { name: "list_course_videolectures", desc: "Recorded lectures" },
+    ],
+  },
+  {
+    name: "Messages & Support",
+    icon: "✉️",
+    tools: [
+      { name: "list_messages", desc: "Inbox from teachers and secretariat" },
+      { name: "list_notifications", desc: "Push notifications" },
+      { name: "list_tickets", desc: "Support tickets" },
+      { name: "search_ticket_faqs", desc: "Search FAQ before opening a ticket" },
+    ],
+  },
+  {
+    name: "Career & Jobs",
+    icon: "💼",
+    tools: [
+      { name: "list_job_offers", desc: "Internships and job postings" },
+      { name: "get_job_offer", desc: "Full details for a specific offer" },
+      { name: "list_news", desc: "University news and events" },
+    ],
+  },
+  {
+    name: "People & Directory",
+    icon: "👥",
+    tools: [
+      { name: "search_people", desc: "Find professors or staff by name" },
+      { name: "get_person", desc: "Contact info, office, and courses taught" },
+    ],
+  },
+];
+
+const totalTools = categories.reduce((sum, cat) => sum + cat.tools.length, 0);
+---
+
+<section id="features" class="relative border-b border-line py-16 sm:py-20">
+  <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
+    <SectionHeader
+      title="What—you—can—ask"
+      subtitle={`${totalTools} MCP tools. Every API endpoint. Zero manual work.`}
+    />
+
+    <div class="reveal mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-delay="40">
+      {categories.map((category) => (
+        <div class="category-card group border border-line bg-near p-6 transition-all hover:border-blue/30">
+          <div class="flex items-start justify-between">
+            <span class="text-3xl">{category.icon}</span>
+            <span class="label text-[10px]">{category.tools.length} tools</span>
+          </div>
+          
+          <h3 class="mt-4 font-display text-2xl text-white">
+            {category.name}
+          </h3>
+
+          <ul class="mt-4 space-y-2.5">
+            {category.tools.map((tool) => (
+              <li class="flex items-start gap-2 text-sm">
+                <Icon name="bolt" class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-bright" />
+                <div>
+                  <code class="font-mono text-xs text-white">{tool.name}</code>
+                  <span class="ml-1.5 text-ash">— {tool.desc}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+    <!-- CTA banner -->
+    <div class="reveal mt-16 border-2 border-blue bg-blue/5 p-8 text-center sm:p-12" data-delay="80">
+      <p class="font-display text-3xl text-white sm:text-4xl">
+        Every tool works in plain language.
+      </p>
+      <p class="mt-4 text-ash">
+        No syntax, no commands, no API keys. Just ask.
+      </p>
+      <a
+        href="/docs/clients/"
+        class="mt-6 inline-flex h-11 items-center border border-white bg-white px-7 font-mono text-xs uppercase tracking-[0.16em] text-black transition-all hover:bg-white/90"
+      >
+        Setup guide →
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .category-card {
+    position: relative;
+  }
+
+  .category-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--color-blue) 0%, transparent 50%) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .category-card:hover::before {
+    opacity: 0.3;
+  }
+</style>
