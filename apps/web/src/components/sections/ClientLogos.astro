@@ -5,6 +5,7 @@ const clients = [
   { name: "Claude", logo: "/logos/anthropic.svg", color: "#d97757" },
   { name: "ChatGPT", logo: "/logos/openai.svg", color: "#10a37f" },
   { name: "Cursor", logo: "/logos/cursor.svg", color: "#000000" },
+  { name: "Windsurf", logo: "/logos/windsurf.svg", color: "#00c4cc" },
   { name: "VS Code", logo: "/logos/vscode.svg", color: "#007acc" },
 ];
 ---
@@ -20,7 +21,7 @@ const clients = [
       </p>
     </div>
 
-    <div class="reveal mt-12 grid grid-cols-2 gap-6 sm:mt-16 sm:grid-cols-4 sm:gap-8" data-delay="80">
+    <div class="reveal mt-12 grid grid-cols-2 gap-6 sm:mt-16 sm:grid-cols-5 sm:gap-8" data-delay="80">
       {clients.map((client) => (
         <div class="group flex flex-col items-center gap-4 border border-line bg-near p-6 transition-all hover:border-line-strong sm:p-8">
           <div class="grid h-14 w-14 place-items-center text-ash transition-all group-hover:scale-110 group-hover:text-white sm:h-16 sm:w-16">
