@@ -1,0 +1,240 @@
+---
+import Icon from "./Icon.astro";
+
+// Realistic demo showing the actual product in action with real tool names
+const conversations = [
+  {
+    user: "When is my next exam?",
+    tools: ["list_exams", "list_bookings"],
+    response: `Your next exam is **Database Systems (01PDWOV)** on **March 15, 2025 at 14:30** in Room 3D. You're already booked for it.
+
+You also have **Operating Systems** available to book for April 2nd.`,
+  },
+  {
+    user: "What's my weighted average?",
+    tools: ["get_grades"],
+    response: `Your current **weighted average is 27.45** across 8 recorded exams (48 CFU).
+
+Highest: **30L** in Algorithms · Lowest: **24** in Physics II`,
+  },
+  {
+    user: "Are there any free study rooms right now?",
+    tools: ["find_free_classrooms"],
+    response: `Found **12 free classrooms** at Cittadella Politecnica right now:
+
+**Room 3I** (120 seats, projector) · **Lab 4A** (40 seats) · **Room 5C** (80 seats)
+
+All free for the next 2 hours.`,
+  },
+];
+
+const currentDemo = conversations[0];
+---
+
+<div class="demo-container relative border border-line bg-near overflow-hidden">
+  <!-- Window chrome -->
+  <div class="flex items-center justify-between border-b border-line px-4 py-3">
+    <div class="flex items-center gap-2">
+      <span class="h-2.5 w-2.5 rounded-full bg-line-strong"></span>
+      <span class="h-2.5 w-2.5 rounded-full bg-line-strong"></span>
+      <span class="h-2.5 w-2.5 rounded-full bg-line-strong"></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+      <span class="font-mono text-[10px] uppercase tracking-[0.16em] text-ash">
+        polito · connected
+      </span>
+    </div>
+  </div>
+
+  <div class="space-y-5 p-5 sm:p-6 min-h-[420px]">
+    <!-- User message -->
+    <div class="demo-user-msg opacity-0">
+      <div class="flex justify-end">
+        <div class="max-w-[85%] border border-line-strong bg-black px-4 py-3 text-sm text-white">
+          <span class="demo-typing"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assistant response -->
+    <div class="demo-assistant-msg opacity-0">
+      <div class="space-y-3">
+        <!-- Tool calls -->
+        <div class="demo-tools flex flex-wrap gap-2 opacity-0">
+          {currentDemo.tools.map((tool) => (
+            <span class="inline-flex items-center gap-1.5 border border-line bg-black px-2.5 py-1.5 font-mono text-[11px] text-ash">
+              <Icon name="bolt" class="h-3 w-3 text-blue-bright" />
+              {tool}
+            </span>
+          ))}
+        </div>
+
+        <!-- Response text -->
+        <div class="demo-response border-l-2 border-blue bg-black/50 px-4 py-3.5 text-sm leading-relaxed text-ash opacity-0">
+          <div class="prose-response"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cycle indicator -->
+    <div class="demo-controls absolute bottom-4 right-5 flex items-center gap-2">
+      {conversations.map((_, i) => (
+        <button 
+          class="demo-dot h-1.5 w-1.5 rounded-full bg-line-strong transition-all hover:bg-ash"
+          data-index={i}
+          aria-label={`Show example ${i + 1}`}
+        />
+      ))}
+    </div>
+  </div>
+</div>
+
+<script define:vars={{ conversations }}>
+  const container = document.querySelector('.demo-container');
+  if (!container) throw new Error('Demo container not found');
+
+  let currentIndex = 0;
+  let isAnimating = false;
+
+  const userMsg = container.querySelector('.demo-user-msg');
+  const assistantMsg = container.querySelector('.demo-assistant-msg');
+  const typingEl = container.querySelector('.demo-typing');
+  const toolsEl = container.querySelector('.demo-tools');
+  const responseEl = container.querySelector('.demo-response');
+  const proseEl = responseEl.querySelector('.prose-response');
+  const dots = container.querySelectorAll('.demo-dot');
+
+  function updateActiveDot() {
+    dots.forEach((dot, i) => {
+      if (i === currentIndex) {
+        dot.classList.add('!w-6', '!bg-blue');
+      } else {
+        dot.classList.remove('!w-6', '!bg-blue');
+      }
+    });
+  }
+
+  async function typeText(element, text, speed = 40) {
+    element.textContent = '';
+    for (let i = 0; i < text.length; i++) {
+      element.textContent += text[i];
+      await new Promise(r => setTimeout(r, speed));
+    }
+  }
+
+  async function showResponse(html) {
+    const lines = html.split('\n').filter(l => l.trim());
+    proseEl.innerHTML = '';
+    
+    for (const line of lines) {
+      const p = document.createElement('div');
+      p.innerHTML = line;
+      // Style markdown-like bold
+      p.innerHTML = p.innerHTML.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+      proseEl.appendChild(p);
+      await new Promise(r => setTimeout(r, 100));
+    }
+  }
+
+  async function animateConversation(index) {
+    if (isAnimating) return;
+    isAnimating = true;
+
+    const conv = conversations[index];
+    
+    // Reset
+    userMsg.style.opacity = '0';
+    assistantMsg.style.opacity = '0';
+    toolsEl.style.opacity = '0';
+    responseEl.style.opacity = '0';
+    typingEl.textContent = '';
+    proseEl.innerHTML = '';
+
+    // User message types in
+    await new Promise(r => setTimeout(r, 300));
+    userMsg.style.opacity = '1';
+    await typeText(typingEl, conv.user, 50);
+
+    // Brief pause
+    await new Promise(r => setTimeout(r, 600));
+    
+    // Show assistant thinking
+    assistantMsg.style.opacity = '1';
+    
+    // Tools appear
+    await new Promise(r => setTimeout(r, 200));
+    toolsEl.style.opacity = '1';
+    
+    // Tools "execute" (brief flash)
+    await new Promise(r => setTimeout(r, 800));
+    
+    // Response appears
+    responseEl.style.opacity = '1';
+    await showResponse(conv.response);
+
+    // Hold for reading
+    await new Promise(r => setTimeout(r, 4000));
+    
+    isAnimating = false;
+    
+    // Auto-advance
+    currentIndex = (currentIndex + 1) % conversations.length;
+    updateActiveDot();
+    animateConversation(currentIndex);
+  }
+
+  // Dot click handlers
+  dots.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      if (!isAnimating && i !== currentIndex) {
+        currentIndex = i;
+        updateActiveDot();
+        animateConversation(currentIndex);
+      }
+    });
+  });
+
+  // Respect prefers-reduced-motion
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  
+  if (prefersReduced) {
+    // Show first example immediately without animation
+    userMsg.style.opacity = '1';
+    assistantMsg.style.opacity = '1';
+    toolsEl.style.opacity = '1';
+    responseEl.style.opacity = '1';
+    typingEl.textContent = conversations[0].user;
+    proseEl.innerHTML = conversations[0].response.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/\n/g, '<br>');
+    updateActiveDot();
+  } else {
+    // Start animation
+    updateActiveDot();
+    animateConversation(0);
+  }
+</script>
+
+<style>
+  .demo-user-msg,
+  .demo-assistant-msg,
+  .demo-tools,
+  .demo-response {
+    transition: opacity 0.4s ease;
+  }
+  
+  .demo-dot {
+    transition: all 0.3s ease;
+  }
+
+  .prose-response {
+    color: var(--color-ash);
+  }
+
+  .prose-response > div {
+    margin: 0.5rem 0;
+  }
+
+  .prose-response > div:first-child {
+    margin-top: 0;
+  }
+</style>

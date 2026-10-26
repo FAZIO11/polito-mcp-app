@@ -85,9 +85,13 @@ body {
   background-size: 72px 72px;
 }
 
-/* Reveal-on-scroll (progressive enhancement). */
+/* Reveal-on-scroll (progressive enhancement).
+   Elements are visible by default (is-in class). JS removes is-in and sets up
+   the observer only when prefers-reduced-motion: no-preference AND
+   IntersectionObserver is available. This ensures content is always visible
+   when JS fails, is disabled, or the screenshot is taken before hydration. */
 @media (prefers-reduced-motion: no-preference) {
-  .reveal {
+  .reveal:not(.is-in) {
     opacity: 0;
     transform: translateY(16px);
     transition:

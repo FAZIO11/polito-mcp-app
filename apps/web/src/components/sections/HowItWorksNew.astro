@@ -1,0 +1,281 @@
+---
+import SectionHeader from "../SectionHeader.astro";
+
+const steps = [
+  {
+    num: "01",
+    title: "Connect your client",
+    body: "Add the polito-mcp server URL to Claude Desktop, Cursor, ChatGPT, or VS Code. Takes 30 seconds.",
+  },
+  {
+    num: "02",
+    title: "Sign in with PoliTO",
+    body: "OAuth flow to app.didattica.polito.it — your credentials never touch our servers.",
+  },
+  {
+    num: "03",
+    title: "Ask anything",
+    body: "Your AI assistant can now query grades, exams, deadlines, free rooms, and more in plain language.",
+  },
+];
+---
+
+<section id="how-it-works" class="relative border-b border-line py-16 sm:py-20">
+  <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
+    <SectionHeader
+      title="How—it—works"
+      subtitle="Three steps. Zero friction."
+    />
+
+    <!-- Steps -->
+    <div class="reveal is-in mt-16 grid gap-8 sm:grid-cols-3" data-delay="40">
+      {steps.map((step, i) => (
+        <div class="group relative border border-line bg-near p-6 transition-all hover:border-blue/50 sm:p-8">
+          <div class="absolute -top-3 left-6 bg-black px-2 font-mono text-xs uppercase tracking-[0.18em] text-blue">
+            {step.num}
+          </div>
+          <h3 class="mt-2 font-display text-2xl text-white sm:text-3xl">
+            {step.title}
+          </h3>
+          <p class="mt-3 text-sm leading-relaxed text-ash sm:text-base">
+            {step.body}
+          </p>
+        </div>
+      ))}
+    </div>
+
+    <!-- Flow diagram -->
+    <div class="reveal is-in mt-16 border border-line bg-near p-8 sm:p-12" data-delay="80">
+      <div class="mx-auto max-w-4xl">
+        <p class="mb-8 text-center font-mono text-xs uppercase tracking-[0.16em] text-ash">
+          Data flow
+        </p>
+        
+        <div class="flow-diagram relative">
+          <!-- Client -->
+          <div class="flow-node">
+            <div class="node-box">
+              <div class="node-icon">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <span class="node-label">Your AI Client</span>
+              <span class="node-sublabel">Claude, Cursor, ChatGPT...</span>
+            </div>
+          </div>
+
+          <!-- Arrow 1 -->
+          <div class="flow-arrow">
+            <div class="arrow-line"></div>
+            <div class="arrow-label">MCP Request</div>
+          </div>
+
+          <!-- polito-mcp -->
+          <div class="flow-node">
+            <div class="node-box node-highlight">
+              <div class="node-icon node-icon-accent">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <span class="node-label">polito-mcp</span>
+              <span class="node-sublabel">OAuth · Encryption · Caching</span>
+            </div>
+          </div>
+
+          <!-- Arrow 2 -->
+          <div class="flow-arrow">
+            <div class="arrow-line"></div>
+            <div class="arrow-label">HTTPS · Bearer Auth</div>
+          </div>
+
+          <!-- PoliTO API -->
+          <div class="flow-node">
+            <div class="node-box">
+              <div class="node-icon">
+                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                </svg>
+              </div>
+              <span class="node-label">PoliTO API</span>
+              <span class="node-sublabel">app.didattica.polito.it</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security note -->
+        <div class="mt-10 border-l-2 border-blue bg-black/30 px-6 py-4">
+          <p class="font-mono text-xs uppercase tracking-[0.16em] text-blue">Security & Privacy</p>
+          <ul class="mt-3 space-y-2 text-sm text-ash">
+            <li class="flex items-start gap-2">
+              <span class="mt-1 h-1 w-1 flex-shrink-0 bg-ash"></span>
+              <span><strong class="text-white">OAuth 2.1 + PKCE</strong> — industry-standard authorization, zero password storage</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="mt-1 h-1 w-1 flex-shrink-0 bg-ash"></span>
+              <span><strong class="text-white">AES-256-GCM</strong> encrypted tokens at rest with per-user HKDF keys</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="mt-1 h-1 w-1 flex-shrink-0 bg-ash"></span>
+              <span><strong class="text-white">Read-only by default</strong> — writes require explicit confirmation</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="mt-1 h-1 w-1 flex-shrink-0 bg-ash"></span>
+              <span><strong class="text-white">Unofficial project</strong> — not affiliated with Politecnico di Torino</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .flow-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .flow-diagram {
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  .flow-node {
+    flex: 0 0 auto;
+  }
+
+  .node-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-black);
+    padding: 1.5rem 1.25rem;
+    min-width: 160px;
+    transition: all 0.3s;
+  }
+
+  .node-box:hover {
+    border-color: var(--color-line-strong);
+    transform: translateY(-2px);
+  }
+
+  .node-highlight {
+    border-color: var(--color-blue);
+    background: rgba(0, 113, 221, 0.05);
+  }
+
+  .node-icon {
+    color: var(--color-ash);
+    transition: color 0.3s;
+  }
+
+  .node-icon-accent {
+    color: var(--color-blue);
+  }
+
+  .node-box:hover .node-icon {
+    color: var(--color-white);
+  }
+
+  .node-label {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--color-white);
+    text-align: center;
+  }
+
+  .node-sublabel {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    color: var(--color-ash-dim);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .flow-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    padding: 0 1rem;
+  }
+
+  @media (max-width: 639px) {
+    .flow-arrow {
+      transform: rotate(90deg);
+      padding: 1rem 0;
+    }
+  }
+
+  .arrow-line {
+    position: relative;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      var(--color-line) 0%,
+      var(--color-blue) 50%,
+      var(--color-line) 100%
+    );
+    background-size: 200% 100%;
+    animation: flow 3s ease-in-out infinite;
+  }
+
+  .arrow-line::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid var(--color-blue);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+
+  @keyframes flow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .arrow-label {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    color: var(--color-ash-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 639px) {
+    .arrow-label {
+      transform: rotate(-90deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arrow-line {
+      animation: none;
+      background: var(--color-line);
+    }
+    
+    .node-box {
+      transition: none;
+    }
+    
+    .node-box:hover {
+      transform: none;
+    }
+  }
+</style>

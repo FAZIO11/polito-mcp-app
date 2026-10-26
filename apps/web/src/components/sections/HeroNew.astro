@@ -1,0 +1,101 @@
+---
+import AnimatedDemo from "../AnimatedDemo.astro";
+import { site } from "../../lib/site";
+
+const hero = {
+  title: "Your PoliTO account,",
+  subtitle: "answerable by AI",
+  value: "Ask your AI assistant about grades, exams, deadlines, and free study rooms — it talks directly to the Politecnico di Torino student API.",
+  cta: "Get started",
+  secondary: "View on GitHub",
+};
+---
+
+<section class="relative overflow-hidden border-b border-line">
+  <!-- Background grid -->
+  <div class="bg-grid absolute inset-0 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]"></div>
+
+  <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
+    <!-- Status bar -->
+    <div class="reveal is-in flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line py-3.5">
+      <span class="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-ash">
+        <span class="inline-block h-1.5 w-1.5 animate-pulse bg-emerald-400"></span>
+        Live · Beta
+      </span>
+      <span class="label">47 MCP Tools</span>
+      <span class="label">OAuth 2.1 + PKCE</span>
+      <span class="label">Open Source · AGPL-3.0</span>
+      <span class="label ml-auto hidden sm:block">Beta · Open Source</span>
+    </div>
+
+    <!-- Hero content -->
+    <div class="grid items-center gap-10 py-14 lg:grid-cols-[1.15fr_1fr] lg:gap-12 lg:py-20">
+      <div>
+        <h1 class="reveal is-in font-display leading-[0.85] text-white" data-delay="20">
+          <span class="text-[clamp(3rem,10vw,7rem)]">{hero.title}</span>
+          <br>
+          <span class="text-[clamp(4rem,13vw,10rem)] text-blue">{hero.subtitle}</span>
+        </h1>
+
+        <p class="reveal is-in mt-6 max-w-xl text-balance text-lg leading-relaxed text-white sm:text-xl" data-delay="60">
+          {hero.value}
+        </p>
+
+        <p class="reveal is-in mt-4 max-w-lg text-base leading-relaxed text-ash" data-delay="80">
+          A remote MCP server for Claude, Cursor, ChatGPT, Windsurf, VS Code, and any compatible client. 
+          Grades, lectures, course materials, exam booking, free classrooms — pulled live from the PoliTO API.
+        </p>
+
+        <div class="reveal is-in mt-8 flex flex-wrap items-center gap-3" data-delay="100">
+          <a
+            href={site.origin + "/connect"}
+            class="inline-flex h-12 items-center bg-orange px-7 font-mono text-xs uppercase tracking-[0.16em] text-white transition-all hover:shadow-cta"
+            style="box-shadow: var(--shadow-cta)"
+          >
+            {hero.cta} →
+          </a>
+          <a
+            href={site.repo}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex h-12 items-center border border-line-strong px-7 font-mono text-xs uppercase tracking-[0.16em] text-white transition-all hover:border-white hover:bg-white/5"
+          >
+            {hero.secondary}
+          </a>
+        </div>
+
+        <!-- Quick stats -->
+        <dl class="reveal is-in mt-12 grid grid-cols-3 gap-4" data-delay="140">
+          <div class="border border-line bg-near px-4 py-3">
+            <dt class="label text-[10px]">Status</dt>
+            <dd class="mt-1 font-mono text-xl text-white">Beta</dd>
+          </div>
+          <div class="border border-line bg-near px-4 py-3">
+            <dt class="label text-[10px]">Tools</dt>
+            <dd class="mt-1 font-mono text-xl text-white">47</dd>
+          </div>
+          <div class="border border-line bg-near px-4 py-3">
+            <dt class="label text-[10px]">Clients</dt>
+            <dd class="mt-1 font-mono text-xl text-white">5+</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Animated demo -->
+      <div class="reveal is-in lg:pt-8" data-delay="120">
+        <AnimatedDemo />
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+</style>
